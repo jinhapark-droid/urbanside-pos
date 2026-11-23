@@ -509,16 +509,24 @@ function openCancel(id, kind) {
   openModal(`${kind === "exchange" ? "교환" : "취소·환불"} · ${displayOrderNo(s.orderNo)}`, renderStage1(),
     `${kind === "exchange" ? `<button class="btn yellow" data-act="cancel-stage2" data-id="${s.id}">다음 단계: 새 상품 담기</button>` : ""}<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="${kind}" ${kind === "exchange" ? 'style="display:none" data-stage="1"' : ""}>${kind === "exchange" ? "원상품 취소하고 새 상품 담기" : "취소·환불 기록"}</button>`);
 
-  document.addEventListener("click", e => {
-    if (e.target.dataset.act === "cancel-stage2") {
-      cancelStage = 2;
-      updateStage();
-      $("[data-act='cancel-do']").style.display = "block";
-      $("[data-act='cancel-do']").textContent = "교환 처리";
-      $("[data-act='cancel-do']").dataset.stage = "2";
-      $("[data-act='cancel-stage2']").style.display = "none";
+  setTimeout(() => {
+    const nextBtn = $("[data-act='cancel-stage2']");
+    if (nextBtn) {
+      nextBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        cancelStage = 2;
+        updateStage();
+        const cancelBtn = $("[data-act='cancel-do']");
+        if (cancelBtn) {
+          cancelBtn.style.display = "block";
+          cancelBtn.textContent = "교환 처리";
+          cancelBtn.dataset.stage = "2";
+        }
+        nextBtn.style.display = "none";
+      });
     }
-  }, { once: false });
+  }, 100);
   const recalc = () => {
     let cancelAmt = 0, remainItemNet = 0, remainItemGross = 0;
     s.items.forEach((it, i) => {
