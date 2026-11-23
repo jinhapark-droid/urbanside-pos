@@ -452,9 +452,9 @@ function openCancel(id, kind) {
         <div style="font-size:14px;font-weight:bold;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">취소액: ${won(cancelAmt)}원</div>
       </div>
       <div class="box"><h4>새로 구매할 상품</h4>
-        <div class="form-grid" style="margin-bottom:12px;position:relative">
-          <label class="wide">바코드 스캔 또는 상품명<input class="input" id="new-scan" placeholder="바코드를 찍거나 상품명 검색" inputmode="numeric" data-autofocus></label>
-          <div id="search-results" class="note" style="position:absolute;top:100%;left:0;right:0;background:var(--border);border-radius:4px;max-height:200px;overflow-y:auto;z-index:100;display:none;margin-top:4px"></div>
+        <div style="margin-bottom:12px;position:relative">
+          <label class="wide" style="display:block;margin-bottom:8px">바코드 스캔 또는 상품명<input class="input" id="new-scan" placeholder="바코드를 찍거나 상품명 검색" inputmode="numeric" data-autofocus style="display:block;width:100%;margin-top:4px"></label>
+          <div id="search-results" style="position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--border);border:1px solid var(--line);border-radius:4px;max-height:240px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.3)"></div>
         </div>
         <div id="new-items-box" class="note" style="min-height:40px;padding:8px;background:var(--border);border-radius:4px">선택한 상품이 여기에 나타나요</div>
       </div>
@@ -515,9 +515,9 @@ function openCancel(id, kind) {
 
           if (matches.length) {
             searchResults.innerHTML = matches.map((p, idx) =>
-              `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:60px;display:flex;flex-direction:column;justify-content:space-between" data-search-idx="${idx}">
-                <div><b style="font-size:13px">${esc(p.name)}</b></div>
-                <div style="font-size:12px;color:var(--dim);margin:4px 0">${esc(p.color)} / ${esc(p.size)}</div>
+              `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
+                <div style="font-weight:bold;font-size:13px;line-height:1.4">${esc(p.name)}</div>
+                <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)}</div>
                 <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(p.price * (1 - (p.disc || 0)))}</div>
               </div>`
             ).join("");
