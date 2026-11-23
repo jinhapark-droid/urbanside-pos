@@ -396,42 +396,117 @@ function openCancel(id, kind) {
   const s = S.sales.find(x => x.id === id); if (!s) return;
   const days = daysSince(s.ts), late = days > REFUND_DAYS;
   const promo = storeCfg().promo || {};
-  const rows = s.items.map((it, i) => {
-    const left = it.qty - it.cq; if (left <= 0) return "";
-    const disp = it.type === "pickup"
-      ? `<select class="input" data-cdisp="${i}">${Object.entries(DISP).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>`
-      : `<span class="note">${it.exp ? `<span class="bad-txt">발주 등록됨 → 이지어드민 발주 취소 필요</span>` : "발주 전 · 바로 취소"}</span>`;
-    return `<tr><td class="c"><input type="checkbox" data-cpick="${i}" aria-label="선택"></td>
-      <td class="name-cell"><b>${esc(it.name)}</b> ${esc(it.color)} / <b>${esc(it.size)}</b> <span class="chip t-${it.type}">${TYPES[it.type]}</span></td>
-      <td class="c"><select class="input" data-cqty="${i}">${Array.from({ length: left }, (_, k) => `<option value="${k + 1}" ${k + 1 === left ? "selected" : ""}>${k + 1}</option>`).join("")}</select> / ${left}</td>
-      <td class="r num">${won(it.net / it.qty)}</td><td>${disp}</td></tr>`;
-  }).join("");
-  openModal(`${kind === "exchange" ? "교환" : "취소·환불"} · ${displayOrderNo(s.orderNo)}`, `
-    ${late ? `<div class="banner bad">구매 후 ${days}일 지났어요 (기준 ${REFUND_DAYS}일). 본사 승인 사유를 반드시 기입하고 진행하세요.</div>` : `<div class="banner info">구매 ${days}일째 · 환불 가능 기간 안이에요.</div>`}
-    ${kind === "exchange" ? `<p class="note">교환 = 원상품 취소 후 새 상품 판매예요. 여기서 돌려받는 상품을 고르면, 판매 화면에서 새 상품을 담아 확정할 때 두 주문이 연결돼요.</p>` : ""}
-    <table style="margin-top:10px"><thead><tr><th></th><th>상품</th><th class="c">수량</th><th class="r">개당 금액</th><th>처리</th></tr></thead><tbody>${rows}</tbody></table>
-    <div class="form-grid" style="margin-top:12px">
-      <label>사유<select class="input" id="c-reason">${REASONS.map(r => `<option ${kind === "exchange" && r.startsWith("사이즈") ? "selected" : ""}>${r}</option>`).join("")}</select></label>
-      <label>환불 금액 (원)<input class="input num" id="c-refund" inputmode="numeric" value="0"></label>
-      <label class="wide">상세 메모<input class="input" id="c-memo" placeholder="예: 블랙 L → 블랙 XL, 현금영수증 재발행"></label>
-    </div>
-    <div class="box" style="background:var(--border);padding:12px;border-radius:4px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-        <div><div class="note" style="font-size:12px;margin-bottom:4px">환불액</div><div class="num" style="font-size:18px;font-weight:bold" id="c-refund-display">0원</div></div>
-        <div><div class="note" style="font-size:12px;margin-bottom:4px" id="c-hyundai-label">더현대 재결제</div><div class="num" style="font-size:18px;font-weight:bold;color:var(--accent)" id="c-hyundai-display">0원</div></div>
+  let cancelStage = 1, selectedLines = [];
+
+  const renderStage1 = () => {
+    const rows = s.items.map((it, i) => {
+      const left = it.qty - it.cq; if (left <= 0) return "";
+      const disp = it.type === "pickup"
+        ? `<select class="input" data-cdisp="${i}">${Object.entries(DISP).map(([k, v]) => `<option value="${k}">${v}</option>`).join("")}</select>`
+        : `<span class="note">${it.exp ? `<span class="bad-txt">발주 등록됨 → 이지어드민 발주 취소 필요</span>` : "발주 전 · 바로 취소"}</span>`;
+      return `<tr><td class="c"><input type="checkbox" data-cpick="${i}" aria-label="선택"></td>
+        <td class="name-cell"><b>${esc(it.name)}</b> ${esc(it.color)} / <b>${esc(it.size)}</b> <span class="chip t-${it.type}">${TYPES[it.type]}</span></td>
+        <td class="c"><select class="input" data-cqty="${i}">${Array.from({ length: left }, (_, k) => `<option value="${k + 1}" ${k + 1 === left ? "selected" : ""}>${k + 1}</option>`).join("")}</select> / ${left}</td>
+        <td class="r num">${won(it.net / it.qty)}</td><td>${disp}</td></tr>`;
+    }).join("");
+
+    return `${late ? `<div class="banner bad">구매 후 ${days}일 지났어요 (기준 ${REFUND_DAYS}일). 본사 승인 사유를 반드시 기입하고 진행하세요.</div>` : `<div class="banner info">구매 ${days}일째 · 환불 가능 기간 안이에요.</div>`}
+      ${kind === "exchange" ? `<p class="note">교환 = 취소한 상품 대신 새 상품을 담으세요. 1️⃣ 먼저 돌려받을 상품 선택 2️⃣ 새 상품 담기 3️⃣ 차액 확인 후 최종 처리</p>` : ""}
+      <table style="margin-top:10px"><thead><tr><th></th><th>상품</th><th class="c">수량</th><th class="r">개당 금액</th><th>처리</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="form-grid" style="margin-top:12px">
+        <label>사유<select class="input" id="c-reason">${REASONS.map(r => `<option ${kind === "exchange" && r.startsWith("사이즈") ? "selected" : ""}>${r}</option>`).join("")}</select></label>
+        <label class="wide">상세 메모<input class="input" id="c-memo" placeholder="${kind === "exchange" ? "예: 블랙 M → 화이트 L 교환" : "예: 불량, 사이즈 맞지 않음"}"></label>
       </div>
-      <div id="c-promo-box" style="display:none;padding:8px;background:rgba(255,152,0,0.1);border-radius:4px;margin-top:8px">
-        <label class="check" style="margin:0"><input type="checkbox" id="c-revoke-promo"> <span style="font-size:12px" id="c-promo-msg"></span></label>
+      <div class="box"><h4>확인 (모두 체크해야 진행돼요)</h4>
+        <label class="check"><input type="checkbox" data-cchk> 택이 붙어 있고 착용하지 않았어요</label>
+        <label class="check"><input type="checkbox" data-cchk> 영수증(주문번호)으로 구매 내역을 확인했어요</label>
+        ${late ? `<label class="check"><input type="checkbox" data-cchk> 기간이 지났지만 본사 승인을 받았어요</label>` : ""}
+      </div>`;
+  };
+
+  const updateStage = () => {
+    const modal = $("#modal-root");
+    if (cancelStage === 1) {
+      modal.innerHTML = `<div class="modal-content">${renderStage1()}</div>`;
+      const nextBtn = modal.closest("[role='dialog']")?.querySelector('[data-act="cancel-stage2"]');
+      if (nextBtn) nextBtn.style.display = kind === "exchange" ? "" : "none";
+    } else if (cancelStage === 2 && kind === "exchange") {
+      renderStage2();
+    }
+  };
+
+  const renderStage2 = () => {
+    selectedLines = [];
+    s.items.forEach((it, i) => {
+      const ck = $(`[data-cpick="${i}"]`);
+      const qty = +$(`[data-cqty="${i}"]`).value || 0;
+      if (ck && ck.checked) selectedLines.push({ i, qty, name: it.name, color: it.color, size: it.size, unitPrice: it.net / it.qty, totalPrice: (it.net / it.qty) * qty, type: it.type });
+    });
+
+    const cancelAmt = sum(selectedLines, l => l.totalPrice);
+    const html = `
+      <div class="box"><h4>돌려받을 상품 (확정)</h4>
+        ${selectedLines.map(l => `<div class="note" style="margin:8px 0"><b>${esc(l.name)}</b> ${esc(l.color)} / ${esc(l.size)} ×${l.qty} = <b>${won(l.totalPrice)}</b>원</div>`).join("")}
+        <div style="font-size:14px;font-weight:bold;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">취소액: ${won(cancelAmt)}원</div>
       </div>
-    </div>
-    <div class="box"><h4>확인 (모두 체크해야 진행돼요)</h4>
-      <label class="check"><input type="checkbox" data-cchk> 택이 붙어 있고 착용하지 않았어요</label>
-      <label class="check"><input type="checkbox" data-cchk> 영수증(주문번호)으로 구매 내역을 확인했어요</label>
-      <label class="check"><input type="checkbox" data-cchk> 백화점 POS에서 ${kind === "exchange" ? "결제 취소·재결제" : "결제 취소"}를 완료했어요</label>
-      ${late ? `<label class="check"><input type="checkbox" data-cchk> 기간이 지났지만 본사 승인을 받았어요</label>` : ""}
-    </div>
-    ${RULES}`,
-    `<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="${kind}">${kind === "exchange" ? "원상품 취소하고 새 상품 담기" : "취소·환불 기록"}</button>`);
+      <div class="box"><h4>새로 구매할 상품</h4>
+        <div class="form-grid" style="margin-bottom:12px">
+          <label class="wide">바코드 스캔 또는 상품명<input class="input" id="new-scan" placeholder="바코드를 찍거나 상품명 검색" inputmode="numeric" data-autofocus></label>
+        </div>
+        <div id="new-items-box" class="note" style="min-height:40px;padding:8px;background:var(--border);border-radius:4px">선택한 상품이 여기에 나타나요</div>
+      </div>
+      <div class="box" style="background:var(--border);padding:12px;border-radius:4px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">취소액</div><div class="num" style="font-size:16px;font-weight:bold">${won(cancelAmt)}</div></div>
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">새상품</div><div class="num" style="font-size:16px;font-weight:bold" id="new-total">0원</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)">
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">고객 환급</div><div class="num" style="font-size:14px;font-weight:bold" id="refund-amt">0원</div></div>
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">추가결제</div><div class="num" style="font-size:14px;font-weight:bold;color:var(--accent)" id="extra-pay">0원</div></div>
+        </div>
+      </div>`;
+
+    $("#modal-root").innerHTML = html;
+
+    let newItems = [];
+    const updateCalc = () => {
+      const newAmt = sum(newItems, it => it.unit * it.qty);
+      const diff = cancelAmt - newAmt;
+      $("#new-total").textContent = won(newAmt);
+      $("#refund-amt").textContent = won(Math.max(0, diff));
+      $("#extra-pay").textContent = won(Math.max(0, -diff));
+      $("#new-items-box").innerHTML = newItems.map((it, idx) => `<div style="display:flex;justify-content:space-between;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1)">
+        <span><b>${esc(it.name)}</b> ${esc(it.color)} / ${esc(it.size)} ×<b>${it.qty}</b></span>
+        <span>${won(it.unit * it.qty)}</span>
+        <button class="btn sm" data-act="new-item-del" data-idx="${idx}" style="margin-left:8px">삭제</button>
+      </div>`).join("");
+    };
+
+    $("#new-scan").addEventListener("keydown", e => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const q = $("#new-scan").value.trim();
+      if (!q) return;
+      const p = findProduct(q) || S.byBc[q];
+      if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
+      const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+      if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+      $("#new-scan").value = "";
+      updateCalc();
+    });
+
+    document.addEventListener("click", e => {
+      if (e.target.dataset.act === "new-item-del") {
+        const idx = +e.target.dataset.idx;
+        newItems.splice(idx, 1);
+        updateCalc();
+      }
+    });
+    updateCalc();
+  };
+
+  openModal(`${kind === "exchange" ? "교환" : "취소·환불"} · ${displayOrderNo(s.orderNo)}`, renderStage1(),
+    `${kind === "exchange" ? `<button class="btn yellow" data-act="cancel-stage2">다음 단계: 새 상품 담기</button>` : ""}<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="${kind}" ${kind === "exchange" ? 'style="display:none"' : ""}>${kind === "exchange" ? "원상품 취소하고 새 상품 담기" : "취소·환불 기록"}</button>`);
   const recalc = () => {
     let cancelAmt = 0, remainItemNet = 0, remainItemGross = 0;
     s.items.forEach((it, i) => {
@@ -450,8 +525,8 @@ function openCancel(id, kind) {
     const needRevoke = !promoApplies && s.promoDisc > 0;
     const revokeCheckbox = $("#c-revoke-promo");
     revokeCheckbox.checked = needRevoke;
-    let hyundaiAmount = promoApplies ? Math.round(remainItemGross * s.total / s.gross) : remainItemGross;
-    let finalRefund = needRevoke ? cancelAmt + s.promoDisc : cancelAmt;
+    let hyundaiAmount = remainItemGross;
+    let finalRefund = needRevoke ? cancelAmt - s.promoDisc : cancelAmt;
     if (needRevoke) {
       $("#c-promo-box").style.display = "block";
       revokeCheckbox.disabled = false;
@@ -466,8 +541,8 @@ function openCancel(id, kind) {
     }
     revokeCheckbox.addEventListener("change", () => {
       if (needRevoke) {
-        finalRefund = revokeCheckbox.checked ? cancelAmt + s.promoDisc : cancelAmt;
-        hyundaiAmount = revokeCheckbox.checked ? remainItemGross : Math.round(remainItemGross * s.total / s.gross);
+        finalRefund = revokeCheckbox.checked ? cancelAmt - s.promoDisc : cancelAmt;
+        hyundaiAmount = remainItemGross;
         $("#c-refund").value = finalRefund;
         $("#c-refund-display").textContent = won(finalRefund);
         $("#c-hyundai-display").textContent = won(Math.round(hyundaiAmount));
@@ -944,10 +1019,10 @@ function viewOrders() {
   const rows = Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0])).flatMap(([date, orders]) => {
     const dateRow = `<tr style="background:#2a2f38"><td colspan="10" style="padding:8px;font-weight:bold;color:#4a9eff">${date}</td></tr>`;
     const orderRows = orders.map(s => `<tr>
-        <td class="num">${hm(s.ts)}</td><td class="mono">${esc(displayOrderNo(s.orderNo) || s.id)}</td>
+        <td class="num">${hm(s.ts)}</td><td class="mono">${esc(displayOrderNo(s.orderNo) || s.id)}${s.exchangeOf ? `<div class="note">← 교환 대상</div>` : ""}${s.exchangeTo && s.exchangeTo.length ? `<div class="note">교환 →</div>` : ""}</td>
         <td class="mono" style="color:#4a9eff">${s.hyundaiReceiptNo ? esc(s.hyundaiReceiptNo) : `<button class="btn sm orange" data-act="receipt-edit" data-id="${s.id}">영수증 NO 입력</button>`}</td>
         <td>${esc(s.custName || "—")}<div class="note">${esc(s.custPhone || "")}</div></td>
-        <td class="name-cell">${esc(saleSummary(s))}${s.excWarn ? ` <span class="chip warn">⚠ 예외할인</span>` : ""}${s.memo ? ` <span class="chip">메모</span>` : ""}</td>
+        <td class="name-cell">${esc(saleSummary(s))}${s.excWarn ? ` <span class="chip warn">⚠ 예외할인</span>` : ""}${s.memo ? ` <span class="chip">메모</span>` : ""}${s.exchangeOf ? `<div class="note" style="color:var(--warn)">교환 처리 중</div>` : ""}</td>
         <td>${typeChips(s)}</td><td class="r num">${won(s.total)}</td><td class="r num">${s.refunded ? won(s.refunded) : ""}</td><td>${stateChip(s)}</td>
         <td><button class="btn sm" data-act="order" data-id="${s.id}">열기</button></td></tr>`).join("");
     return dateRow + orderRows;
