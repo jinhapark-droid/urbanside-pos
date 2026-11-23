@@ -396,7 +396,8 @@ function openCancel(id, kind) {
   const s = S.sales.find(x => x.id === id); if (!s) return;
   const days = daysSince(s.ts), late = days > REFUND_DAYS;
   const promo = storeCfg().promo || {};
-  let cancelStage = 1, selectedLines = [];
+  let cancelStage = 1, selectedLines = [], newItems = [];
+  S.exchangeStage2Items = null;
 
   const renderStage1 = () => {
     const rows = s.items.map((it, i) => {
@@ -468,7 +469,7 @@ function openCancel(id, kind) {
 
     $("#modal-root").innerHTML = html;
 
-    let newItems = [];
+    newItems = [];
     const updateCalc = () => {
       const newAmt = sum(newItems, it => it.unit * it.qty);
       const diff = cancelAmt - newAmt;
@@ -500,13 +501,26 @@ function openCancel(id, kind) {
         const idx = +e.target.dataset.idx;
         newItems.splice(idx, 1);
         updateCalc();
+      } else if (e.target.dataset.act === "cancel-do" && e.target.dataset.stage === "2") {
+        S.exchangeStage2Items = newItems;
       }
     });
     updateCalc();
   };
 
   openModal(`${kind === "exchange" ? "교환" : "취소·환불"} · ${displayOrderNo(s.orderNo)}`, renderStage1(),
-    `${kind === "exchange" ? `<button class="btn yellow" data-act="cancel-stage2">다음 단계: 새 상품 담기</button>` : ""}<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="${kind}" ${kind === "exchange" ? 'style="display:none"' : ""}>${kind === "exchange" ? "원상품 취소하고 새 상품 담기" : "취소·환불 기록"}</button>`);
+    `${kind === "exchange" ? `<button class="btn yellow" data-act="cancel-stage2" data-id="${s.id}">다음 단계: 새 상품 담기</button>` : ""}<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="${kind}" ${kind === "exchange" ? 'style="display:none" data-stage="1"' : ""}>${kind === "exchange" ? "원상품 취소하고 새 상품 담기" : "취소·환불 기록"}</button>`);
+
+  document.addEventListener("click", e => {
+    if (e.target.dataset.act === "cancel-stage2") {
+      cancelStage = 2;
+      updateStage();
+      $("[data-act='cancel-do']").style.display = "block";
+      $("[data-act='cancel-do']").textContent = "교환 처리";
+      $("[data-act='cancel-do']").dataset.stage = "2";
+      $("[data-act='cancel-stage2']").style.display = "none";
+    }
+  }, { once: false });
   const recalc = () => {
     let cancelAmt = 0, remainItemNet = 0, remainItemGross = 0;
     s.items.forEach((it, i) => {
@@ -636,8 +650,19 @@ async function doCancel(id, kind) {
   closeModal();
   try {
     await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry], status: all ? "canceled" : "partial" }, true);
-    if (kind === "exchange") { S.exchange = { id, orderNo: s.orderNo }; S.cart = []; goTab("sell"); toast("원상품을 취소했어요. 교환할 새 상품을 담아 판매 확정해 주세요.", "go"); }
-    else toast(`취소·환불을 기록했어요 · 환불 ${won(entry.refund)}원`, "go");
+    if (kind === "exchange") {
+      S.exchange = { id, orderNo: s.orderNo };
+      S.cart = [];
+      if (S.exchangeStage2Items && S.exchangeStage2Items.length) {
+        S.exchangeStage2Items.forEach(it => {
+          const p = S.byBc[it.bc];
+          if (p) S.cart.push({ p, qty: it.qty, type: "pickup", via: "search" });
+        });
+        S.exchangeStage2Items = null;
+      }
+      goTab("sell");
+      toast("원상품을 취소했어요. 새 상품이 준비되었습니다. 판매 확정해 주세요.", "go");
+    } else toast(`취소·환불을 기록했어요 · 환불 ${won(entry.refund)}원`, "go");
   } catch (e) { writeFail(e); }
 }
 
