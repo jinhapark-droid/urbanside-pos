@@ -961,7 +961,7 @@ function openExc(i) {
 }
 
 // ---------- 화면 ----------
-const TABS = [["sell", "판매"], ["orders", "주문 조회"], ["ship", "배송 발주"], ["stock", "재고 현황"], ["request", "입고 요청"], ["receive", "입고 반영"], ["report", "매출·마감"], ["admin", "설정", true]];
+const TABS = [["sell", "판매"], ["orders", "주문 조회"], ["ship", "배송 발주"], ["stock", "재고 현황"], ["request", "입고 요청"], ["receive", "입고 반영"], ["report", "매출·마감"], ["closing", "마감일지"], ["admin", "설정", true]];
 function render() {
   if (composing) { renderPending = true; return; }
   const tabs = TABS.filter(t => !t[2] || isHQ());
@@ -975,7 +975,7 @@ function render() {
   if (!S.products.length) { main.innerHTML = `<div class="empty"><strong>상품 마스터가 아직 없어요</strong>본사에서 상품 목록을 등록하면 판매를 시작할 수 있어요.</div>`; return; }
   const keepFocus = document.activeElement && document.activeElement.id;
   const caret = document.activeElement && document.activeElement.selectionStart;
-  main.innerHTML = ({ sell: viewSell, orders: viewOrders, ship: viewShip, stock: viewStock, request: viewRequest, receive: viewReceive, report: viewReport, admin: viewAdmin }[S.tab])();
+  main.innerHTML = ({ sell: viewSell, orders: viewOrders, ship: viewShip, stock: viewStock, request: viewRequest, receive: viewReceive, report: viewReport, closing: viewClosing, admin: viewAdmin }[S.tab])();
   strip();
   if (keepFocus && document.getElementById(keepFocus)) { const el = document.getElementById(keepFocus); el.focus(); try { if (caret != null) el.setSelectionRange(caret, caret); } catch (e) {} }
   else if (S.tab === "sell" && !$("#modal-root").innerHTML) { const sc = $("#scan"); if (sc) sc.focus(); }
@@ -1311,6 +1311,42 @@ function viewReport() {
       <div class="scroll" style="max-height:50vh"><table><thead><tr><th>일시</th><th>구분</th><th>상품</th><th>옵션</th><th class="r">수량</th><th>기록</th><th>담당</th></tr></thead><tbody>
       ${mv.map(m => `<tr><td class="num">${mdhm(m.ts)}</td><td><span class="chip ${m.type === "판매" ? "bad" : m.type === "취소 복구" ? "warn" : "go"}">${esc(m.type)}</span></td><td class="name-cell">${esc(m.p.name)}</td><td>${esc(m.p.color)} / ${esc(m.p.size)}</td><td class="r num" style="color:${m.qty < 0 ? "var(--bad)" : "var(--go)"}"><b>${m.qty > 0 ? "+" : ""}${m.qty}</b></td><td class="mono note">${esc(m.ref)}</td><td>${esc(m.by || "")}</td></tr>`).join("") || `<tr><td colspan="7"><div class="empty">기록이 없어요.</div></td></tr>`}
       </tbody></table></div></section>`;
+}
+
+function viewClosing() {
+  const days = dailyRows().reverse(); // 최근 날짜부터
+  const kv = (k, v, cls = "") => `<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><div>${k}</div><div class="num ${cls}" style="font-weight:bold">${v}</div></div>`;
+  return `<div class="filters"><h2 style="margin:0;font-size:17px">마감일지</h2><span class="note">판매·마감 탭에서 일자를 선택하여 상세 마감 정보 확인</span></div>
+    <section class="panel"><div class="panel-h"><h2>마감 기록</h2><span class="sub">최근 ${days.length}일</span></div>
+      <div class="scroll" style="max-height:60vh"><div>
+      ${days.map(d => `
+        <div class="list-item" style="padding:16px;border-bottom:1px solid var(--line);cursor:pointer" onclick="S.tab='report'; S.closeDay='${d.day}'; render()">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="font-weight:bold;font-size:15px">${d.day}</div>
+            <div style="display:flex;gap:8px">
+              <span class="chip ${d.netSales > 0 ? "go" : d.netSales < 0 ? "bad" : ""}">${d.n}건</span>
+              <span class="chip">${won(d.netSales)}</span>
+            </div>
+          </div>
+          ${kv("판매금액", won(d.total))}
+          ${kv("실결제", won(d.paid), d.paid !== d.total ? "warn-txt" : "")}
+          ${kv("환불", won(d.refund), d.refund ? "bad-txt" : "")}
+          ${kv("순매출", won(d.netSales), d.netSales > 0 ? "go-txt" : d.netSales < 0 ? "bad-txt" : "")}
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;color:var(--dim)">
+            <span>${d.qty}개 판매</span>
+            <span>수량 ${d.baseDisc ? `할인${won(d.baseDisc)}` : ""}</span>
+          </div>
+        </div>
+      `).join("") || `<div class="empty">마감 기록이 없어요.</div>`}
+      </div></div>
+    </section>
+    <section class="panel" style="margin-top:16px"><div class="panel-h"><h2>참고사항</h2></div><div class="panel-b" style="font-size:13px;line-height:1.6;color:var(--dim)">
+      <p>• 각 날짜를 클릭하면 상세 마감 화면으로 이동합니다</p>
+      <p>• 판매금액: 정상가 − 할인</p>
+      <p>• 실결제: 고객 결제 금액 (공급사별 차액 제외)</p>
+      <p>• 순매출: 판매금액 − 그날 환불</p>
+      <p>• 백화점 단말기와 금액 대조 후 마감 확정</p>
+    </div></section>`;
 }
 
 function viewAdmin() {
