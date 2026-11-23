@@ -441,8 +441,9 @@ function openCancel(id, kind) {
         <div style="font-size:14px;font-weight:bold;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">취소액: ${won(cancelAmt)}원</div>
       </div>
       <div class="box"><h4>새로 구매할 상품</h4>
-        <div class="form-grid" style="margin-bottom:12px">
+        <div class="form-grid" style="margin-bottom:12px;position:relative">
           <label class="wide">바코드 스캔 또는 상품명<input class="input" id="new-scan" placeholder="바코드를 찍거나 상품명 검색" inputmode="numeric" data-autofocus></label>
+          <div id="search-results" class="note" style="position:absolute;top:100%;left:0;right:0;background:var(--border);border-radius:4px;max-height:200px;overflow-y:auto;z-index:100;display:none;margin-top:4px"></div>
         </div>
         <div id="new-items-box" class="note" style="min-height:40px;padding:8px;background:var(--border);border-radius:4px">선택한 상품이 여기에 나타나요</div>
       </div>
@@ -476,21 +477,70 @@ function openCancel(id, kind) {
 
     setTimeout(() => {
       const scanInput = $("#new-scan");
+      const searchResults = $("#search-results");
       if (scanInput) {
+        scanInput.addEventListener("input", e => {
+          const q = scanInput.value.trim();
+          if (!q) {
+            searchResults.style.display = "none";
+            return;
+          }
+          const matches = S.products.filter(p =>
+            p.name.toLowerCase().includes(q.toLowerCase()) ||
+            p.bc.includes(q) ||
+            (p.ez && p.ez.includes(q))
+          ).slice(0, 8);
+
+          if (matches.length) {
+            searchResults.innerHTML = matches.map((p, idx) =>
+              `<div class="list-item" style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer" data-search-idx="${idx}">
+                <b>${esc(p.name)}</b> ${esc(p.color)} / ${esc(p.size)}<br>
+                <span class="note">${won(p.price * (1 - (p.disc || 0)))}</span>
+              </div>`
+            ).join("");
+            searchResults.style.display = "block";
+          } else {
+            searchResults.style.display = "none";
+          }
+        });
+
         scanInput.addEventListener("keydown", e => {
           if (e.key !== "Enter") return;
           e.preventDefault();
-          const q = scanInput.value.trim();
-          if (!q) return;
-          const p = findProduct(q) || S.byBc[q];
-          if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
-          const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
-          scanInput.value = "";
-          updateCalc();
+          const selected = $("[data-search-idx]");
+          if (selected) selected.click();
+          else {
+            const q = scanInput.value.trim();
+            if (!q) return;
+            const p = findProduct(q) || S.byBc[q];
+            if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
+            const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+            scanInput.value = "";
+            searchResults.style.display = "none";
+            updateCalc();
+          }
         });
       }
     }, 50);
+
+    document.addEventListener("click", e => {
+      if (e.target.closest("[data-search-idx]")) {
+        const idx = +e.target.closest("[data-search-idx]").dataset.searchIdx;
+        const p = S.products.filter(p =>
+          p.name.toLowerCase().includes($("#new-scan").value.trim().toLowerCase()) ||
+          p.bc.includes($("#new-scan").value.trim()) ||
+          (p.ez && p.ez.includes($("#new-scan").value.trim()))
+        )[idx];
+        if (p) {
+          const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+          $("#new-scan").value = "";
+          $("#search-results").style.display = "none";
+          updateCalc();
+        }
+      }
+    });
 
     document.addEventListener("click", e => {
       if (e.target.dataset.act === "new-item-del") {
