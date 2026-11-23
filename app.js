@@ -106,6 +106,7 @@ const S = {
   cart: [], orderExc: null, orderEmpDisc: null, empVerified: false, exchange: null, tab: "sell",
   stockFilter: { q: "", mode: "all" }, reqDraft: {}, reqFilter: { q: "", mode: "sold" }, reqMemo: "", upload: null,
   reportDay: "", closeDay: dayKey(Date.now()), lookupQ: "", shipMode: "todo", lowLine: 0, staff: null,
+  closingDay: null, closingNotes: JSON.parse(ls("pos.closingNotes") || "{}"),
 };
 let composing = false, renderPending = false;
 const P = (col, id) => `s/${S.store}/${col}/${id}`;
@@ -1314,13 +1315,14 @@ function viewReport() {
 }
 
 function viewClosing() {
+  if (S.closingDay) return viewClosingNote(); // 메모 작성 화면
   const days = dailyRows().reverse(); // 최근 날짜부터
   const kv = (k, v, cls = "") => `<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><div>${k}</div><div class="num ${cls}" style="font-weight:bold">${v}</div></div>`;
-  return `<div class="filters"><h2 style="margin:0;font-size:17px">마감일지</h2><span class="note">판매·마감 탭에서 일자를 선택하여 상세 마감 정보 확인</span></div>
+  return `<div class="filters"><h2 style="margin:0;font-size:17px">마감일지</h2><span class="note">날짜를 클릭하여 일보 작성 · 확인</span></div>
     <section class="panel"><div class="panel-h"><h2>마감 기록</h2><span class="sub">최근 ${days.length}일</span></div>
       <div class="scroll" style="max-height:60vh"><div>
       ${days.map(d => `
-        <div class="list-item" style="padding:16px;border-bottom:1px solid var(--line);cursor:pointer" onclick="S.tab='report'; S.closeDay='${d.day}'; render()">
+        <div class="list-item" style="padding:16px;border-bottom:1px solid var(--line);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background=''" onclick="S.closingDay='${d.day}'; render()">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div style="font-weight:bold;font-size:15px">${d.day}</div>
             <div style="display:flex;gap:8px">
@@ -1334,19 +1336,60 @@ function viewClosing() {
           ${kv("순매출", won(d.netSales), d.netSales > 0 ? "go-txt" : d.netSales < 0 ? "bad-txt" : "")}
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;color:var(--dim)">
             <span>${d.qty}개 판매</span>
-            <span>수량 ${d.baseDisc ? `할인${won(d.baseDisc)}` : ""}</span>
+            <span>${S.closingNotes && S.closingNotes[d.day] ? "✓ 메모 작성됨" : "메모 없음"}</span>
           </div>
         </div>
       `).join("") || `<div class="empty">마감 기록이 없어요.</div>`}
       </div></div>
-    </section>
-    <section class="panel" style="margin-top:16px"><div class="panel-h"><h2>참고사항</h2></div><div class="panel-b" style="font-size:13px;line-height:1.6;color:var(--dim)">
-      <p>• 각 날짜를 클릭하면 상세 마감 화면으로 이동합니다</p>
-      <p>• 판매금액: 정상가 − 할인</p>
-      <p>• 실결제: 고객 결제 금액 (공급사별 차액 제외)</p>
-      <p>• 순매출: 판매금액 − 그날 환불</p>
-      <p>• 백화점 단말기와 금액 대조 후 마감 확정</p>
+    </section>`;
+}
+
+function viewClosingNote() {
+  const d = dailyRows().find(x => x.day === S.closingDay);
+  if (!d) return `<div class="empty">데이터를 찾을 수 없어요.</div>`;
+  const notes = S.closingNotes || {};
+  const note = notes[S.closingDay] || { flow: "", reaction: "", issue: "" };
+  const kv = (k, v, cls = "") => `<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><div>${k}</div><div class="num ${cls}" style="font-weight:bold">${v}</div></div>`;
+  return `<div class="filters"><h2 style="margin:0;font-size:17px">${S.closingDay} 일보</h2><button class="btn sm spacer" onclick="S.closingDay=null; render()">← 목록으로</button></div>
+    <section class="panel"><div class="panel-h"><h2>판매 현황</h2></div><div class="panel-b">
+      ${kv("판매건수", `${d.n}건`)}
+      ${kv("판매금액", won(d.total))}
+      ${kv("실결제", won(d.paid), d.paid !== d.total ? "warn-txt" : "")}
+      ${kv("환불", won(d.refund), d.refund ? "bad-txt" : "")}
+      ${kv("순매출", won(d.netSales), d.netSales > 0 ? "go-txt" : d.netSales < 0 ? "bad-txt" : "")}
+      ${kv("판매수량", `${d.qty}개`)}
+    </div></section>
+    <section class="panel" style="margin-top:16px"><div class="panel-h"><h2>일보 메모</h2><span class="sub">알바 감 잡을 수 있게 작성해주세요</span></div><div class="panel-b">
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;font-weight:bold;font-size:13px">【오늘 흐름】</label>
+        <textarea id="note-flow" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;resize:vertical" placeholder="고객 방문 시간대 · 분위기 · 이벤트 등&#10;예: 14시부터 활기 / 최종일 인식 고객 多 / 재방문 고객 증가">${esc(note.flow)}</textarea>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;font-weight:bold;font-size:13px">【고객·상품 반응】</label>
+        <textarea id="note-reaction" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;resize:vertical" placeholder="인기 상품 · 색상 반응 · 고객 나이대 · 재방문 등&#10;예: 7D 베이지 인기 / 한국 고객 多 / 온라인 가격 문의 증가">${esc(note.reaction)}</textarea>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;font-weight:bold;font-size:13px">【이슈·요청·내일 액션】</label>
+        <textarea id="note-issue" style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;resize:vertical" placeholder="문제점 · 개선 사항 · 내일 초점 등&#10;예: 재고 부족 (사이즈 L 품절) / 명확한 상품 설명 필요 / 내일은 가격 메리트 강조">${esc(note.issue)}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="S.closingDay=null; render()">취소</button>
+        <button class="btn primary" onclick="savClosingNote('${S.closingDay}')">저장</button>
+      </div>
     </div></section>`;
+}
+
+function savClosingNote(day) {
+  const flow = $("#note-flow").value.trim();
+  const reaction = $("#note-reaction").value.trim();
+  const issue = $("#note-issue").value.trim();
+  if (!flow && !reaction && !issue) { toast("내용을 작성해주세요.", "warn"); return; }
+  if (!S.closingNotes) S.closingNotes = {};
+  S.closingNotes[day] = { flow, reaction, issue, by: S.me?.name, ts: Date.now() };
+  ls("pos.closingNotes", JSON.stringify(S.closingNotes));
+  toast("일보가 저장되었어요.", "go");
+  S.closingDay = null;
+  render();
 }
 
 function viewAdmin() {
