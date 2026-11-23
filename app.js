@@ -425,16 +425,8 @@ function openCancel(id, kind) {
       </div>`;
   };
 
-  const updateStage = () => {
-    const modalBody = $(".modal-b");
-    if (cancelStage === 1) {
-      modalBody.innerHTML = renderStage1();
-    } else if (cancelStage === 2 && kind === "exchange") {
-      renderStage2();
-    }
-  };
 
-  const renderStage2 = () => {
+  const openStage2Modal = () => {
     selectedLines = [];
     s.items.forEach((it, i) => {
       const ck = $(`[data-cpick="${i}"]`);
@@ -443,7 +435,7 @@ function openCancel(id, kind) {
     });
 
     const cancelAmt = sum(selectedLines, l => l.totalPrice);
-    const html = `
+    const body = `
       <div class="box"><h4>돌려받을 상품 (확정)</h4>
         ${selectedLines.map(l => `<div class="note" style="margin:8px 0"><b>${esc(l.name)}</b> ${esc(l.color)} / ${esc(l.size)} ×${l.qty} = <b>${won(l.totalPrice)}</b>원</div>`).join("")}
         <div style="font-size:14px;font-weight:bold;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">취소액: ${won(cancelAmt)}원</div>
@@ -465,7 +457,8 @@ function openCancel(id, kind) {
         </div>
       </div>`;
 
-    $(".modal-b").innerHTML = html;
+    openModal(`교환 · 새 상품 선택 · ${displayOrderNo(s.orderNo)}`, body,
+      `<button class="btn" data-act="close">취소</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="exchange" data-stage="2">교환 처리</button>`);
 
     newItems = [];
     const updateCalc = () => {
@@ -481,18 +474,23 @@ function openCancel(id, kind) {
       </div>`).join("");
     };
 
-    $("#new-scan").addEventListener("keydown", e => {
-      if (e.key !== "Enter") return;
-      e.preventDefault();
-      const q = $("#new-scan").value.trim();
-      if (!q) return;
-      const p = findProduct(q) || S.byBc[q];
-      if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
-      const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-      if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
-      $("#new-scan").value = "";
-      updateCalc();
-    });
+    setTimeout(() => {
+      const scanInput = $("#new-scan");
+      if (scanInput) {
+        scanInput.addEventListener("keydown", e => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          const q = scanInput.value.trim();
+          if (!q) return;
+          const p = findProduct(q) || S.byBc[q];
+          if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
+          const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+          scanInput.value = "";
+          updateCalc();
+        });
+      }
+    }, 50);
 
     document.addEventListener("click", e => {
       if (e.target.dataset.act === "new-item-del") {
@@ -515,15 +513,7 @@ function openCancel(id, kind) {
       nextBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        cancelStage = 2;
-        updateStage();
-        const cancelBtn = $("[data-act='cancel-do']");
-        if (cancelBtn) {
-          cancelBtn.style.display = "block";
-          cancelBtn.textContent = "교환 처리";
-          cancelBtn.dataset.stage = "2";
-        }
-        nextBtn.style.display = "none";
+        openStage2Modal();
       });
     }
   }, 100);
