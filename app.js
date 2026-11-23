@@ -423,6 +423,7 @@ function openCancel(id, kind) {
           <div><div class="note" style="font-size:12px;margin-bottom:4px">고객 환급액</div><div class="num" style="font-size:18px;font-weight:bold" id="c-refund-display">0원</div></div>
           <div><div class="note" style="font-size:12px;margin-bottom:4px">더현대 POS 환불</div><div class="num" style="font-size:18px;font-weight:bold;color:var(--accent)" id="c-hyundai-display">0원</div></div>
         </div>
+        <input type="hidden" id="c-refund" value="0">
         <div id="c-promo-box" style="display:none;padding:8px;background:rgba(255,152,0,0.1);border-radius:4px">
           <label class="check" style="margin:0"><input type="checkbox" id="c-revoke-promo"> <span style="font-size:12px" id="c-promo-msg"></span></label>
         </div>
