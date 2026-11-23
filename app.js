@@ -473,19 +473,25 @@ function openCancel(id, kind) {
       `<button class="btn" data-act="close">취소</button><button class="btn primary" data-act="cancel-do" data-id="${s.id}" data-k="exchange" data-stage="2">교환 처리</button>`);
 
     newItems = [];
-    const promoRate = s.promoDisc ? (s.promoDisc / s.gross) : 0; // 원래 주문의 프로모션 할인율
+    const promo = storeCfg().promo || {};
     const updateCalc = () => {
-      const newAmt = sum(newItems, it => Math.round(it.unit * it.qty * (1 - promoRate))); // 프로모션 할인 자동 적용
-      const promoDisplay = promoRate > 0 ? ` (프로모션 ${Math.round(promoRate * 100)}% 적용됨)` : "";
+      const newItemGross = sum(newItems, it => it.unit * it.qty); // 새상품 정상가 합계
+      const finalGross = remainItemGross + newItemGross; // 최종 정상가 (남은품목 + 새상품)
+      const shouldPromo = finalGross >= (promo.threshold || 500000); // 50만원 이상이면 프로모션 적용
+      const promoDisc = shouldPromo ? Math.round(newItemGross * (promo.rate || 0.05)) : 0;
+      const newAmt = newItemGross - promoDisc; // 새상품 판매가 (할인 적용됨)
+      const promoDisplay = shouldPromo ? ` (프로모션 ${Math.round((promo.rate || 0.05) * 100)}% 적용)` : " (프로모션 미적용)";
       const diff = cancelAmt - newAmt;
       $("#new-total").textContent = won(newAmt) + promoDisplay;
       $("#refund-amt").textContent = won(Math.max(0, diff));
       $("#extra-pay").textContent = won(Math.max(0, -diff));
       $("#new-items-box").innerHTML = newItems.map((it, idx) => {
-        const itemPrice = Math.round(it.unit * it.qty * (1 - promoRate));
+        const basePrice = it.unit * it.qty;
+        const itemDisc = shouldPromo ? Math.round(basePrice * (promo.rate || 0.05)) : 0;
+        const itemPrice = basePrice - itemDisc;
         return `<div style="display:flex;justify-content:space-between;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1)">
           <span><b>${esc(it.name)}</b> ${esc(it.color)} / ${esc(it.size)} ×<b>${it.qty}</b></span>
-          <span style="text-align:right"><div style="font-size:11px;color:var(--dim);text-decoration:line-through">${won(it.unit * it.qty)}</div><div style="font-weight:bold;color:var(--go)">${won(itemPrice)}</div></span>
+          <span style="text-align:right"><div style="font-size:11px;color:var(--dim);${itemDisc > 0 ? 'text-decoration:line-through' : ''}">${won(basePrice)}</div><div style="font-weight:bold;color:var(--go)">${won(itemPrice)}</div></span>
           <button class="btn sm" data-act="new-item-del" data-idx="${idx}" style="margin-left:8px">삭제</button>
         </div>`;
       }).join("");
