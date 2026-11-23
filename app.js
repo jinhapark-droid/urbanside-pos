@@ -418,6 +418,15 @@ function openCancel(id, kind) {
         <label>사유<select class="input" id="c-reason">${REASONS.map(r => `<option ${kind === "exchange" && r.startsWith("사이즈") ? "selected" : ""}>${r}</option>`).join("")}</select></label>
         <label class="wide">상세 메모<input class="input" id="c-memo" placeholder="${kind === "exchange" ? "예: 블랙 M → 화이트 L 교환" : "예: 불량, 사이즈 맞지 않음"}"></label>
       </div>
+      <div class="box" style="background:var(--border);padding:12px;border-radius:4px;margin:12px 0">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">고객 환급액</div><div class="num" style="font-size:18px;font-weight:bold" id="c-refund-display">0원</div></div>
+          <div><div class="note" style="font-size:12px;margin-bottom:4px">더현대 POS 환불</div><div class="num" style="font-size:18px;font-weight:bold;color:var(--accent)" id="c-hyundai-display">0원</div></div>
+        </div>
+        <div id="c-promo-box" style="display:none;padding:8px;background:rgba(255,152,0,0.1);border-radius:4px">
+          <label class="check" style="margin:0"><input type="checkbox" id="c-revoke-promo"> <span style="font-size:12px" id="c-promo-msg"></span></label>
+        </div>
+      </div>
       <div class="box"><h4>확인 (모두 체크해야 진행돼요)</h4>
         <label class="check"><input type="checkbox" data-cchk> 택이 붙어 있고 착용하지 않았어요</label>
         <label class="check"><input type="checkbox" data-cchk> 영수증(주문번호)으로 구매 내역을 확인했어요</label>
