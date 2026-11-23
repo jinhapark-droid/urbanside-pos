@@ -1316,7 +1316,7 @@ function viewReport() {
 
 function viewClosing() {
   if (S.closingDay) return viewClosingNote(); // 메모 작성 화면
-  const days = dailyRows().reverse(); // 최근 날짜부터
+  const days = dailyRows(); // 최근 날짜부터 (내림차순)
   const kv = (k, v, cls = "") => `<div style="padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between"><div>${k}</div><div class="num ${cls}" style="font-weight:bold">${v}</div></div>`;
   return `<div class="filters"><h2 style="margin:0;font-size:17px">마감일지</h2><span class="note">날짜를 클릭하여 일보 작성 · 확인</span></div>
     <section class="panel"><div class="panel-h"><h2>마감 기록</h2><span class="sub">최근 ${days.length}일</span></div>
