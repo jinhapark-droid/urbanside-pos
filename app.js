@@ -426,11 +426,9 @@ function openCancel(id, kind) {
   };
 
   const updateStage = () => {
-    const modal = $("#modal-root");
+    const modalBody = $(".modal-b");
     if (cancelStage === 1) {
-      modal.innerHTML = `<div class="modal-content">${renderStage1()}</div>`;
-      const nextBtn = modal.closest("[role='dialog']")?.querySelector('[data-act="cancel-stage2"]');
-      if (nextBtn) nextBtn.style.display = kind === "exchange" ? "" : "none";
+      modalBody.innerHTML = renderStage1();
     } else if (cancelStage === 2 && kind === "exchange") {
       renderStage2();
     }
@@ -467,7 +465,7 @@ function openCancel(id, kind) {
         </div>
       </div>`;
 
-    $("#modal-root").innerHTML = html;
+    $(".modal-b").innerHTML = html;
 
     newItems = [];
     const updateCalc = () => {
