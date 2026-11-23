@@ -504,9 +504,10 @@ function openCancel(id, kind) {
 
           if (matches.length) {
             searchResults.innerHTML = matches.map((p, idx) =>
-              `<div class="list-item" style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer" data-search-idx="${idx}">
-                <b>${esc(p.name)}</b> ${esc(p.color)} / ${esc(p.size)}<br>
-                <span class="note">${won(p.price * (1 - (p.disc || 0)))}</span>
+              `<div style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:60px;display:flex;flex-direction:column;justify-content:space-between" data-search-idx="${idx}">
+                <div><b style="font-size:13px">${esc(p.name)}</b></div>
+                <div style="font-size:12px;color:var(--dim);margin:4px 0">${esc(p.color)} / ${esc(p.size)}</div>
+                <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(p.price * (1 - (p.disc || 0)))}</div>
               </div>`
             ).join("");
             searchResults.style.display = "block";
