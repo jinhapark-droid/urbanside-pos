@@ -974,7 +974,7 @@ function openExc(i) {
 }
 
 // ---------- 화면 ----------
-const TABS = [["sell", "판매"], ["orders", "주문 조회"], ["ship", "배송 발주"], ["stock", "재고 현황"], ["request", "입고 요청"], ["receive", "입고 반영"], ["report", "매출·마감"], ["closing", "마감일지"], ["admin", "설정", true]];
+const TABS = [["sell", "판매"], ["orders", "주문 조회"], ["ship", "배송 발주"], ["stock", "재고 현황"], ["request", "입고 요청"], ["receive", "입고 반영"], ["price", "가격표"], ["report", "매출·마감"], ["closing", "마감일지"], ["admin", "설정", true]];
 function render() {
   if (composing) { renderPending = true; return; }
   const tabs = TABS.filter(t => !t[2] || isHQ());
@@ -988,7 +988,7 @@ function render() {
   if (!S.products.length) { main.innerHTML = `<div class="empty"><strong>상품 마스터가 아직 없어요</strong>본사에서 상품 목록을 등록하면 판매를 시작할 수 있어요.</div>`; return; }
   const keepFocus = document.activeElement && document.activeElement.id;
   const caret = document.activeElement && document.activeElement.selectionStart;
-  main.innerHTML = ({ sell: viewSell, orders: viewOrders, ship: viewShip, stock: viewStock, request: viewRequest, receive: viewReceive, report: viewReport, closing: viewClosing, admin: viewAdmin }[S.tab])();
+  main.innerHTML = ({ sell: viewSell, orders: viewOrders, ship: viewShip, stock: viewStock, request: viewRequest, receive: viewReceive, price: viewPrice, report: viewReport, closing: viewClosing, admin: viewAdmin }[S.tab])();
   strip();
   if (keepFocus && document.getElementById(keepFocus)) { const el = document.getElementById(keepFocus); el.focus(); try { if (caret != null) el.setSelectionRange(caret, caret); } catch (e) {} }
   else if (S.tab === "sell" && !$("#modal-root").innerHTML) { const sc = $("#scan"); if (sc) sc.focus(); }
@@ -1324,6 +1324,32 @@ function viewReport() {
       <div class="scroll" style="max-height:50vh"><table><thead><tr><th>일시</th><th>구분</th><th>상품</th><th>옵션</th><th class="r">수량</th><th>기록</th><th>담당</th></tr></thead><tbody>
       ${mv.map(m => `<tr><td class="num">${mdhm(m.ts)}</td><td><span class="chip ${m.type === "판매" ? "bad" : m.type === "취소 복구" ? "warn" : "go"}">${esc(m.type)}</span></td><td class="name-cell">${esc(m.p.name)}</td><td>${esc(m.p.color)} / ${esc(m.p.size)}</td><td class="r num" style="color:${m.qty < 0 ? "var(--bad)" : "var(--go)"}"><b>${m.qty > 0 ? "+" : ""}${m.qty}</b></td><td class="mono note">${esc(m.ref)}</td><td>${esc(m.by || "")}</td></tr>`).join("") || `<tr><td colspan="7"><div class="empty">기록이 없어요.</div></td></tr>`}
       </tbody></table></div></section>`;
+}
+
+function viewPrice() {
+  const priceData = [
+    { name: "테고", normalPrice: 590000, promoPrice: 540000 }
+  ];
+
+  return `<div class="container" style="padding:16px">
+    <h2 style="margin-top:0">가격표</h2>
+    <table class="full-width" style="border-collapse:collapse;margin-top:12px">
+      <thead>
+        <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+          <th style="padding:12px;text-align:left;font-weight:bold">상품명</th>
+          <th style="padding:12px;text-align:right;font-weight:bold">정가</th>
+          <th style="padding:12px;text-align:right;font-weight:bold">블프 가격</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${priceData.map(p => `<tr style="border-bottom:1px solid #eee">
+          <td style="padding:12px;text-align:left">${esc(p.name)}</td>
+          <td style="padding:12px;text-align:right;font-weight:600">${won(p.normalPrice)}</td>
+          <td style="padding:12px;text-align:right;color:#1976d2;font-weight:bold">${won(p.promoPrice)}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 function viewClosing() {
