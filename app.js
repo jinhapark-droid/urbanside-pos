@@ -1274,8 +1274,8 @@ function viewStock() {
     if (f.mode === "low" && st > S.lowLine) return false;
     return q.every(w => `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase().includes(w));
   };
-  const rows = stockRows(fil, { span: 11, row: (p, L) => { const st = L.stock(p.bc); return `<tr class="${st <= 0 ? "out" : st <= S.lowLine ? "low" : ""}">
-    <td>${esc(p.color)}</td><td>${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="mono">${esc(p.bc)}</td>
+  const rows = stockRows(fil, { span: 10, row: (p, L) => { const st = L.stock(p.bc); return `<tr class="${st <= 0 ? "out" : st <= S.lowLine ? "low" : ""}">
+    <td>${esc(p.color)}</td><td>${esc(p.size)}</td><td class="mono">${esc(p.bc)}</td>
     <td class="r num">${L.init[p.bc] || 0}</td><td class="r num">${L.inQ[p.bc] || 0}</td><td class="r num">${L.net(p.bc)}</td><td class="r num">${L.hold[p.bc] || ""}</td>
     <td class="r num"><b>${st}</b></td><td class="c">${st <= 0 ? `<span class="chip bad">품절</span>` : st <= S.lowLine ? `<span class="chip warn">부족</span>` : `<span class="chip go">정상</span>`}</td><td class="c"><button class="btn sm" data-act="stock-adjust" data-bc="${p.bc}">조정</button></td></tr>`; } });
   return `<div class="kpis">
@@ -1293,7 +1293,7 @@ function viewStock() {
           <label class="note">부족 기준 <select class="input" id="low-line">${[0, 1, 2, 3].map(n => `<option value="${n}" ${n === S.lowLine ? "selected" : ""}>${n ? n + "개 이하" : "품절만"}</option>`).join("")}</select></label>
         </div></div>
       <div class="scroll" style="max-height:70vh"><table>
-        <thead><tr><th>컬러</th><th>사이즈</th><th>이지어드민</th><th>바코드</th><th class="r">초기</th><th class="r">입고</th><th class="r">현장판매</th><th class="r">불량분리</th><th class="r">현재고</th><th class="c">상태</th><th class="c">관리</th></tr></thead>
+        <thead><tr><th>컬러</th><th>사이즈</th><th>바코드</th><th class="r">초기</th><th class="r">입고</th><th class="r">현장판매</th><th class="r">불량분리</th><th class="r">현재고</th><th class="c">상태</th><th class="c">관리</th></tr></thead>
         <tbody>${rows || `<tr><td colspan="10"><div class="empty">조건에 맞는 상품이 없어요.</div></td></tr>`}</tbody></table></div>
     </section>`;
 }
