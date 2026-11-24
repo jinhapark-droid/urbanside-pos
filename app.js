@@ -63,11 +63,37 @@ function beep(ok) {
 }
 function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === true ? "ok" : ok === false ? "bad" : ""}"></span>${esc(text)}`; }
 
+// ---------- Google Sheets 가격표 로드 ----------
+async function loadPriceMapFromGoogleSheets() {
+  try {
+    const priceUrl = `https://docs.google.com/spreadsheets/d/1elpoQQ3CW4aNpcZfFJbu8q3ShUGKhNoZT2p3dGw4MFA/export?format=csv&gid=0`;
+    const csv = await fetch(priceUrl).then(r => r.text());
+    const lines = csv.trim().split('\n').slice(2); // 헤더 2줄 제외
+    const priceMap = {};
+
+    for (const line of lines) {
+      const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+      const name = cols[3]; // D열: 상품명
+      const price = parseInt(cols[11]) || 0; // L열: 판매가
+
+      if (name && price > 0) {
+        priceMap[name] = price;
+      }
+    }
+
+    return priceMap;
+  } catch (e) {
+    console.error("가격표 로드 실패:", e);
+    return {};
+  }
+}
+
 // ---------- Google Sheets 초기재고 로드 ----------
 async function loadInitStockFromGoogleSheets() {
   try {
     const csv = await fetch(GS_INIT_STOCK_CSV).then(r => r.text());
     const lines = csv.trim().split('\n').slice(1); // 헤더 제외
+    const priceMap = await loadPriceMapFromGoogleSheets();
     const receipts = [];
 
     for (const line of lines) {
@@ -77,13 +103,16 @@ async function loadInitStockFromGoogleSheets() {
 
       if (!name || qty === 0) continue;
 
+      // 가격표에서 가격 조회
+      const price = priceMap[name] || 0;
+
       // 초기재고 receipt 생성
       receipts.push({
         kind: "init",
         label: "26FW_초기재고",
         ts: new Date().toISOString(),
         by: "system",
-        items: [{ bc: name, name: name, qty: qty, unit: 0 }]
+        items: [{ bc: name, name: name, qty: qty, unit: price }]
       });
     }
 
