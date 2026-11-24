@@ -63,24 +63,10 @@ function beep(ok) {
 }
 function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === true ? "ok" : ok === false ? "bad" : ""}"></span>${esc(text)}`; }
 
-// ---------- Google Sheets 가격표 로드 ----------
+// ---------- 가격표 로드 ----------
 async function loadPriceMapFromGoogleSheets() {
   try {
-    const priceUrl = `https://docs.google.com/spreadsheets/d/1elpoQQ3CW4aNpcZfFJbu8q3ShUGKhNoZT2p3dGw4MFA/export?format=csv&gid=0`;
-    const csv = await fetch(priceUrl).then(r => r.text());
-    const lines = csv.trim().split('\n').slice(2); // 헤더 2줄 제외
-    const priceMap = {};
-
-    for (const line of lines) {
-      const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
-      const name = cols[3]; // D열: 상품명
-      const price = parseInt(cols[11]) || 0; // L열: 판매가
-
-      if (name && price > 0) {
-        priceMap[name] = price;
-      }
-    }
-
+    const priceMap = await fetch('data/price.json').then(r => r.json());
     return priceMap;
   } catch (e) {
     console.error("가격표 로드 실패:", e);
@@ -88,10 +74,11 @@ async function loadPriceMapFromGoogleSheets() {
   }
 }
 
-// ---------- Google Sheets 초기재고 로드 ----------
+// ---------- 초기재고 로드 (CSV + 가격표 JSON) ----------
 async function loadInitStockFromGoogleSheets() {
   try {
-    const csv = await fetch(GS_INIT_STOCK_CSV).then(r => r.text());
+    // 로컬 파일에서 로드
+    const csv = await fetch('data/stock.csv').then(r => r.text());
     const lines = csv.trim().split('\n').slice(1); // 헤더 제외
     const priceMap = await loadPriceMapFromGoogleSheets();
     const receipts = [];
@@ -118,7 +105,7 @@ async function loadInitStockFromGoogleSheets() {
 
     return receipts;
   } catch (e) {
-    console.error("Google Sheets 로드 실패:", e);
+    console.error("초기재고 로드 실패:", e);
     return [];
   }
 }
