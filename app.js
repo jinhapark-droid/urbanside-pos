@@ -1,10 +1,15 @@
 "use strict";
 // 어반사이드 팝업 POS — 판매·재고 기록과 본사 공유용. 실결제는 매장(백화점) 단말기에서 한다.
-// 데이터: Supabase pos_docs 한 테이블(path → JSON). 매장별 데이터는 s/<매장>/sales|receipts|requests/<id>,
-// 공용은 catalog/main(상품), config/main(매장·프로모션·안내문구).
+// 데이터: Google Sheets 기반 (어반사이드_초기재고_225 Sheet)
+// 초기재고는 Google Sheets에서 CSV로 읽고, 판매/재고 기록도 Google Sheets에 저장
 
+// Google Sheet ID
+const GS_SHEET_ID = "1mMSqaT1S-wt9HH1t6vXYScCBud4K5l3q9Kg06d69f4A";
+const GS_INIT_STOCK_CSV = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/export?format=csv&gid=0`;
+
+// (레거시 Supabase 설정 - 필요 시 사용)
 const SB_URL = "https://owykoqnhwmdhpadxipes.supabase.co";
-const SB_KEY = "sb_publishable_Pgf79543Sk1FvB_PtWK5PA_2U9jlGbD"; // 공개용 키. 데이터는 PIN을 확인하는 DB 함수로만 접근된다.
+const SB_KEY = "sb_publishable_Pgf79543Sk1FvB_PtWK5PA_2U9jlGbD";
 const POLL_MS = 6000;
 const TYPES = { pickup: "현장수령", ship: "택배배송", pre: "사전구매" };
 const DISP = { restock: "정상 재고 복구", defect: "불량 분리", return: "본사 반송", adjust: "실사 보정", lost: "분실 처리" };
@@ -57,6 +62,37 @@ function beep(ok) {
   } catch (e) {}
 }
 function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === true ? "ok" : ok === false ? "bad" : ""}"></span>${esc(text)}`; }
+
+// ---------- Google Sheets 초기재고 로드 ----------
+async function loadInitStockFromGoogleSheets() {
+  try {
+    const csv = await fetch(GS_INIT_STOCK_CSV).then(r => r.text());
+    const lines = csv.trim().split('\n').slice(1); // 헤더 제외
+    const receipts = [];
+
+    for (const line of lines) {
+      const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+      const name = cols[0];
+      const qty = parseInt(cols[1]) || 0;
+
+      if (!name || qty === 0) continue;
+
+      // 초기재고 receipt 생성
+      receipts.push({
+        kind: "init",
+        label: "26FW_초기재고",
+        ts: new Date().toISOString(),
+        by: "system",
+        items: [{ bc: name, name: name, qty: qty, unit: 0 }]
+      });
+    }
+
+    return receipts;
+  } catch (e) {
+    console.error("Google Sheets 로드 실패:", e);
+    return [];
+  }
+}
 
 // ---------- 서버 연결 (6초마다 바뀐 게 있는지 확인) ----------
 const Net = (() => {
@@ -112,7 +148,7 @@ let composing = false, renderPending = false;
 const P = (col, id) => `s/${S.store}/${col}/${id}`;
 const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id) || { id, name: id, code: "X" };
 
-function derive() {
+async function derive() {
   const d = Net.docs();
   const cat = d["catalog/main"];
   S.products = cat && Array.isArray(cat.products) ? cat.products : [];
@@ -124,6 +160,11 @@ function derive() {
   ls("pos.store", S.store);
   const pre = `s/${S.store}/`;
   S.sales = []; S.receipts = []; S.requests = [];
+
+  // Google Sheets 초기재고 로드
+  const initStock = await loadInitStockFromGoogleSheets();
+  S.receipts.push(...initStock);
+
   for (const p in d) {
     if (!p.startsWith(pre)) continue;
     const [col, id] = p.slice(pre.length).split("/"); if (!id) continue;
@@ -1713,7 +1754,7 @@ document.addEventListener("change", e => {
   else if (t.id === "up-req") { S.upload.requestId = t.value; }
   else if (t.id === "rday") { S.reportDay = t.value; render(); }
   else if (t.id === "close-day") { S.closeDay = t.value || dayKey(Date.now()); render(); }
-  else if (t.id === "store-sel") { S.store = t.value; S.cart = []; S.orderExc = null; S.exchange = null; S.upload = null; derive(); render(); }
+  else if (t.id === "store-sel") { S.store = t.value; S.cart = []; S.orderExc = null; S.exchange = null; S.upload = null; derive().then(() => render()); }
   else if (t.id === "up-file" && t.files[0]) readUpload(t.files[0]);
 });
 document.addEventListener("dragover", e => { const d = e.target.closest && e.target.closest("#drop"); if (d) { e.preventDefault(); d.classList.add("over"); } });
@@ -1759,7 +1800,7 @@ function showGate(msg = "") {
 }
 function start() {
   S.loaded = false; render();
-  Net.start(() => { derive(); render(); }, () => showGate("PIN이 바뀌었거나 꺼졌어요. 다시 입력해 주세요."));
+  Net.start(() => { derive().then(() => render()); }, () => showGate("PIN이 바뀌었거나 꺼졌어요. 다시 입력해 주세요."));
 }
 $("#who").addEventListener("click", () => { if (S.me && confirm("로그아웃할까요? (다른 직원으로 바꿀 때)")) { Net.logout(); S.cart = []; showGate(); } });
 $("#who").title = "눌러서 로그아웃";
