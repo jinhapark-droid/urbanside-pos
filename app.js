@@ -77,9 +77,37 @@ async function loadPriceMapFromGoogleSheets() {
 // ---------- 초기재고 로드 (CSV + 가격표 JSON) ----------
 async function loadInitStockFromGoogleSheets() {
   try {
-    // 로컬 파일에서 로드
-    const csv = await fetch('data/stock.csv').then(r => r.text());
-    const lines = csv.trim().split('\n').slice(1); // 헤더 제외
+    // 로컬 파일 시도
+    try {
+      const csv = await fetch('data/stock.csv').then(r => r.text());
+      if (csv) {
+        const lines = csv.trim().split('\n').slice(1);
+        const priceMap = await loadPriceMapFromGoogleSheets();
+        const receipts = [];
+        for (const line of lines) {
+          const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
+          const name = cols[0];
+          const qty = parseInt(cols[1]) || 0;
+          if (!name || qty === 0) continue;
+          const price = priceMap[name] || 0;
+          receipts.push({
+            kind: "init",
+            label: "26FW_초기재고",
+            ts: new Date().toISOString(),
+            by: "system",
+            items: [{ bc: name, name: name, qty: qty, unit: price }]
+          });
+        }
+        return receipts;
+      }
+    } catch (localErr) {
+      console.log("로컬 파일 로드 실패, Google Sheets에서 로드 시도");
+    }
+
+    // Google Sheets CSV에서 로드 (CORS 우회 불가능하면 실패)
+    const sheetUrl = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/export?format=csv&gid=0`;
+    const csv = await fetch(sheetUrl).then(r => r.text());
+    const lines = csv.trim().split('\n').slice(1);
     const priceMap = await loadPriceMapFromGoogleSheets();
     const receipts = [];
 
@@ -87,13 +115,8 @@ async function loadInitStockFromGoogleSheets() {
       const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
       const name = cols[0];
       const qty = parseInt(cols[1]) || 0;
-
       if (!name || qty === 0) continue;
-
-      // 가격표에서 가격 조회
       const price = priceMap[name] || 0;
-
-      // 초기재고 receipt 생성
       receipts.push({
         kind: "init",
         label: "26FW_초기재고",
@@ -102,7 +125,6 @@ async function loadInitStockFromGoogleSheets() {
         items: [{ bc: name, name: name, qty: qty, unit: price }]
       });
     }
-
     return receipts;
   } catch (e) {
     console.error("초기재고 로드 실패:", e);
