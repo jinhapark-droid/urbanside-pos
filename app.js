@@ -188,18 +188,40 @@ const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id
 
 async function derive() {
   // ⚠️ Supabase 연동 비활성화 - 로컬 파일만 사용
-  const cat = { products: [] }; // 카탈로그 없음 (로컬 데이터만 사용)
-  S.products = cat && Array.isArray(cat.products) ? cat.products : [];
-  S.byBc = {}; S.byEz = {}; S.byCode = {};
-  for (const p of S.products) { S.byBc[p.bc] = p; S.byEz[normEz(p.ez)] = p; S.byCode[String(p.code).toUpperCase()] = p; }
   S.config = { stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC" }], notes: {}, notice: "" };
   S.store = "chungcheong";
   ls("pos.store", S.store);
   S.sales = []; S.receipts = []; S.requests = [];
 
-  // 로컬 파일에서 초기재고만 로드
+  // 로컬 파일에서 초기재고 로드
   const initStock = await loadInitStockFromGoogleSheets();
   S.receipts.push(...initStock);
+
+  // 초기재고로부터 products 배열 생성 (각 항목을 product처럼 취급)
+  S.products = [];
+  const productSet = new Set();
+  for (const r of initStock) {
+    if (r.kind === "init" && r.items) {
+      for (const it of r.items) {
+        if (!productSet.has(it.name)) {
+          productSet.add(it.name);
+          S.products.push({
+            bc: it.bc,
+            name: it.name,
+            ez: it.name,
+            code: it.name,
+            color: "Free",
+            size: "F",
+            price: it.unit || 0,
+            disc: 0
+          });
+        }
+      }
+    }
+  }
+
+  S.byBc = {}; S.byEz = {}; S.byCode = {};
+  for (const p of S.products) { S.byBc[p.bc] = p; S.byEz[normEz(p.ez)] = p; S.byCode[String(p.code).toUpperCase()] = p; }
 
   // Supabase 데이터는 로드하지 않음 (로컬 초기재고만 사용)
   S.loaded = true;
@@ -1057,7 +1079,7 @@ function render() {
   $("#who").textContent = `${S.me.name}${isHQ() ? " (본사)" : ""}`;
   if (S.loaded) $("#store-chip").innerHTML = isHQ() ? `<select id="store-sel" aria-label="매장">${S.config.stores.map(s => `<option value="${esc(s.id)}" ${s.id === S.store ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select>` : esc(storeCfg().name);
   if (!S.loaded) { main.innerHTML = `<div class="empty"><strong>데이터를 불러오는 중이에요</strong>잠시만 기다려 주세요.</div>`; return; }
-  if (!S.products.length) { main.innerHTML = `<div class="empty"><strong>상품 마스터가 아직 없어요</strong>본사에서 상품 목록을 등록하면 판매를 시작할 수 있어요.</div>`; return; }
+  if (!S.products.length && S.tab !== "price") { main.innerHTML = `<div class="empty"><strong>상품 마스터가 아직 없어요</strong>본사에서 상품 목록을 등록하면 판매를 시작할 수 있어요.</div>`; return; }
   const keepFocus = document.activeElement && document.activeElement.id;
   const caret = document.activeElement && document.activeElement.selectionStart;
   main.innerHTML = ({ sell: viewSell, orders: viewOrders, ship: viewShip, stock: viewStock, request: viewRequest, receive: viewReceive, price: viewPrice, report: viewReport, closing: viewClosing, admin: viewAdmin }[S.tab])();
