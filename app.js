@@ -1340,13 +1340,24 @@ function viewPrice() {
   }
 
   // 상품 목록 (가격순)
-  const priceData = Object.entries(priceMap)
+  let priceData = Object.entries(priceMap)
     .map(([name, price]) => {
       const category = name.split(" ")[0];
       return { name, price, category };
     })
     .filter(p => p.price > 0)  // 0원 필터링
     .sort((a, b) => b.price - a.price);
+
+  // 검색 필터링
+  const searchId = `price-search-${Date.now()}`;
+  const handleSearch = `
+    const q = document.getElementById('${searchId}').value.toLowerCase();
+    const rows = document.querySelectorAll('.price-row');
+    rows.forEach(row => {
+      const name = row.textContent.toLowerCase();
+      row.style.display = name.includes(q) ? '' : 'none';
+    });
+  `;
 
   // 카테고리 색상 & 배지
   const categories = {
@@ -1368,6 +1379,12 @@ function viewPrice() {
       <div style="font-size:14px;color:var(--dim)">26.11 프로모션 · <strong style="color:var(--accent)">${priceData.length}개</strong> 상품</div>
     </div>
 
+    <div style="position:sticky;top:0;background:#fff;padding:12px 0;margin-bottom:16px;border-bottom:1px solid #e8e8e8;z-index:10">
+      <input type="text" id="${searchId}" placeholder="상품명으로 검색..."
+        style="width:100%;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit"
+        oninput="${handleSearch}">
+    </div>
+
     <div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
       <table class="full-width" style="border-collapse:collapse;width:100%">
         <thead>
@@ -1380,7 +1397,7 @@ function viewPrice() {
         <tbody>
           ${priceData.length ? priceData.map((p, idx) => {
     const cat = getCategory(p.name);
-    return `<tr style="border-bottom:1px solid #e8e8e8;background:${idx % 2 === 0 ? '#fff' : '#fafafa'};transition:all 0.2s" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background='${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
+    return `<tr class="price-row" style="border-bottom:1px solid #e8e8e8;background:${idx % 2 === 0 ? '#fff' : '#fafafa'};transition:all 0.2s" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background='${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
               <td style="padding:14px 16px;text-align:left">
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="width:3px;height:28px;background:${cat.color};border-radius:2px"></div>
