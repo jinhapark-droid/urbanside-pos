@@ -165,28 +165,21 @@ const P = (col, id) => `s/${S.store}/${col}/${id}`;
 const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id) || { id, name: id, code: "X" };
 
 async function derive() {
-  const d = Net.docs();
-  const cat = d["catalog/main"];
+  // ⚠️ Supabase 연동 비활성화 - 로컬 파일만 사용
+  const cat = { products: [] }; // 카탈로그 없음 (로컬 데이터만 사용)
   S.products = cat && Array.isArray(cat.products) ? cat.products : [];
   S.byBc = {}; S.byEz = {}; S.byCode = {};
   for (const p of S.products) { S.byBc[p.bc] = p; S.byEz[normEz(p.ez)] = p; S.byCode[String(p.code).toUpperCase()] = p; }
-  S.config = d["config/main"] || { stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC" }], notes: {}, notice: "" };
-  if (S.me && S.me.role === "store") S.store = S.me.store;
-  if (!(S.config.stores || []).some(s => s.id === S.store)) S.store = ((S.config.stores || [])[0] || {}).id || "";
+  S.config = { stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC" }], notes: {}, notice: "" };
+  S.store = "chungcheong";
   ls("pos.store", S.store);
-  const pre = `s/${S.store}/`;
   S.sales = []; S.receipts = []; S.requests = [];
 
-  // Google Sheets 초기재고 로드
+  // 로컬 파일에서 초기재고만 로드
   const initStock = await loadInitStockFromGoogleSheets();
   S.receipts.push(...initStock);
 
-  for (const p in d) {
-    if (!p.startsWith(pre)) continue;
-    const [col, id] = p.slice(pre.length).split("/"); if (!id) continue;
-    const doc = { id, ...JSON.parse(JSON.stringify(d[p])) };
-    if (col === "sales") S.sales.push(normSale(doc)); else if (col === "receipts") S.receipts.push(doc); else if (col === "requests") S.requests.push(doc);
-  }
+  // Supabase 데이터는 로드하지 않음 (로컬 초기재고만 사용)
   S.loaded = true;
 }
 // 이전 버전(아난티 초기) 판매 기록도 같은 모양으로 맞춘다
@@ -1815,14 +1808,15 @@ function showGate(msg = "") {
   setTimeout(() => $("#gate-pin") && $("#gate-pin").focus(), 0);
 }
 function start() {
-  S.loaded = false; render();
-  Net.start(() => { derive().then(() => render()); }, () => showGate("PIN이 바뀌었거나 꺼졌어요. 다시 입력해 주세요."));
+  S.loaded = false; S.me = { role: "store", store: "chungcheong" }; render();
+  // Supabase 연동 비활성화 - 로컬 데이터만 사용
+  derive().then(() => render());
 }
 $("#who").addEventListener("click", () => { if (S.me && confirm("로그아웃할까요? (다른 직원으로 바꿀 때)")) { Net.logout(); S.cart = []; showGate(); } });
 $("#who").title = "눌러서 로그아웃";
 $("#who").style.cursor = "pointer";
 (() => {
   const t = location.hash.slice(1); if (TABS.some(x => x[0] === t)) S.tab = t;
-  if (!Net.hasPin()) { showGate(); return; }
-  S.me = { name: "…", role: "store" }; start();
+  // Supabase 연동 비활성화 - PIN 없이 바로 시작
+  S.me = { name: "로컬 사용자", role: "store" }; start();
 })();
