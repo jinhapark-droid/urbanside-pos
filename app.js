@@ -1341,30 +1341,62 @@ function viewPrice() {
 
   // 상품 목록 (가격순)
   const priceData = Object.entries(priceMap)
-    .map(([name, promoPrice]) => ({
-      name,
-      promoPrice: promoPrice || 0,
-      discountRate: 0 // 추후 정가 데이터가 추가되면 계산
-    }))
-    .sort((a, b) => b.promoPrice - a.promoPrice);
+    .map(([name, promoPrice]) => {
+      const price = promoPrice || 0;
+      const category = name.split(" ")[0]; // 첫 단어를 카테고리로 사용
+      return { name, price, category };
+    })
+    .sort((a, b) => b.price - a.price);
 
-  return `<div class="container" style="padding:16px">
-    <h2 style="margin-top:0">가격표 (26.11 프로모션)</h2>
-    <div style="margin-bottom:12px;font-size:13px;color:var(--dim)">총 ${priceData.length}개 상품</div>
-    <table class="full-width" style="border-collapse:collapse">
-      <thead>
-        <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
-          <th style="padding:12px;text-align:left;font-weight:bold">상품명</th>
-          <th style="padding:12px;text-align:right;font-weight:bold">판매가</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${priceData.length ? priceData.map(p => `<tr style="border-bottom:1px solid #eee">
-          <td style="padding:12px;text-align:left">${esc(p.name)}</td>
-          <td style="padding:12px;text-align:right;color:#1976d2;font-weight:bold">${won(p.promoPrice)}</td>
-        </tr>`).join("") : `<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--dim)">아직 상품 가격 정보가 없어요</td></tr>`}
-      </tbody>
-    </table>
+  // 카테고리 색상
+  const categoryColors = {
+    "에일러론": "#2196F3", "메리노": "#8B6F47", "플랩": "#4CAF50",
+    "제로인": "#FF9800", "이지모드": "#9C27B0", "undefined": "#999"
+  };
+  const getCategoryColor = (name) => categoryColors[name] || "#666";
+
+  // 가격대 배지
+  const getPriceBadge = (price) => {
+    if (price >= 400000) return `<span style="background:#E91E63;color:#fff;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">고</span>`;
+    if (price >= 200000) return `<span style="background:#2196F3;color:#fff;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">중</span>`;
+    return `<span style="background:#4CAF50;color:#fff;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">저</span>`;
+  };
+
+  return `<div class="container" style="padding:16px;max-width:900px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <h2 style="margin:0;font-size:24px">가격표</h2>
+        <div style="font-size:13px;color:var(--dim);margin-top:4px">26.11 프로모션 · 총 ${priceData.length}개 상품</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <span style="background:#E91E63;color:#fff;padding:4px 8px;border-radius:4px;font-size:12px"><span style="color:#FFB6C1">■</span> 400K+</span>
+        <span style="background:#2196F3;color:#fff;padding:4px 8px;border-radius:4px;font-size:12px"><span style="color:#87CEEB">■</span> 200K~</span>
+        <span style="background:#4CAF50;color:#fff;padding:4px 8px;border-radius:4px;font-size:12px"><span style="color:#90EE90">■</span> ~200K</span>
+      </div>
+    </div>
+    <div style="border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)">
+      <table class="full-width" style="border-collapse:collapse;width:100%">
+        <thead>
+          <tr style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;position:sticky;top:0;z-index:10">
+            <th style="padding:14px 16px;text-align:left;font-weight:600">상품명</th>
+            <th style="padding:14px 16px;text-align:right;font-weight:600;width:150px">판매가</th>
+            <th style="padding:14px 16px;text-align:center;font-weight:600;width:50px">대</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${priceData.length ? priceData.map((p, idx) => `<tr style="border-bottom:1px solid #f0f0f0;background:${idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)'};transition:background 0.2s" onmouseover="this.style.background='rgba(102, 126, 234, 0.08)'" onmouseout="this.style.background='${idx % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)'}'">
+            <td style="padding:12px 16px;text-align:left">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:4px;height:24px;background:${getCategoryColor(p.category)};border-radius:2px"></div>
+                <span style="font-size:13px">${esc(p.name)}</span>
+              </div>
+            </td>
+            <td style="padding:12px 16px;text-align:right;font-weight:bold;color:#667eea;font-size:14px">${won(p.price)}</td>
+            <td style="padding:12px 16px;text-align:center">${getPriceBadge(p.price)}</td>
+          </tr>`).join("") : `<tr><td colspan="3" style="padding:48px 16px;text-align:center;color:var(--dim)">아직 상품 가격 정보가 없어요</td></tr>`}
+        </tbody>
+      </table>
+    </div>
   </div>`;
 }
 
