@@ -1327,26 +1327,42 @@ function viewReport() {
 }
 
 function viewPrice() {
-  const priceData = [
-    { name: "테고", normalPrice: 590000, promoPrice: 540000 }
-  ];
+  // 초기재고 receipts (kind: "init")에서 가격 정보 추출
+  const priceMap = {};
+  for (const r of S.receipts) {
+    if (r.kind === "init" && r.items) {
+      for (const it of r.items) {
+        if (!priceMap[it.name]) {
+          priceMap[it.name] = it.unit || 0;
+        }
+      }
+    }
+  }
+
+  // 상품 목록 (가격순)
+  const priceData = Object.entries(priceMap)
+    .map(([name, promoPrice]) => ({
+      name,
+      promoPrice: promoPrice || 0,
+      discountRate: 0 // 추후 정가 데이터가 추가되면 계산
+    }))
+    .sort((a, b) => b.promoPrice - a.promoPrice);
 
   return `<div class="container" style="padding:16px">
-    <h2 style="margin-top:0">가격표</h2>
-    <table class="full-width" style="border-collapse:collapse;margin-top:12px">
+    <h2 style="margin-top:0">가격표 (26.11 프로모션)</h2>
+    <div style="margin-bottom:12px;font-size:13px;color:var(--dim)">총 ${priceData.length}개 상품</div>
+    <table class="full-width" style="border-collapse:collapse">
       <thead>
         <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
           <th style="padding:12px;text-align:left;font-weight:bold">상품명</th>
-          <th style="padding:12px;text-align:right;font-weight:bold">정가</th>
-          <th style="padding:12px;text-align:right;font-weight:bold">블프 가격</th>
+          <th style="padding:12px;text-align:right;font-weight:bold">판매가</th>
         </tr>
       </thead>
       <tbody>
-        ${priceData.map(p => `<tr style="border-bottom:1px solid #eee">
+        ${priceData.length ? priceData.map(p => `<tr style="border-bottom:1px solid #eee">
           <td style="padding:12px;text-align:left">${esc(p.name)}</td>
-          <td style="padding:12px;text-align:right;font-weight:600">${won(p.normalPrice)}</td>
           <td style="padding:12px;text-align:right;color:#1976d2;font-weight:bold">${won(p.promoPrice)}</td>
-        </tr>`).join("")}
+        </tr>`).join("") : `<tr><td colspan="2" style="padding:24px;text-align:center;color:var(--dim)">아직 상품 가격 정보가 없어요</td></tr>`}
       </tbody>
     </table>
   </div>`;
