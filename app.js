@@ -42,7 +42,8 @@ const sum = (arr, f) => arr.reduce((a, x) => a + (f ? f(x) : x), 0);
 const digits = s => String(s || "").replace(/\D/g, "");
 const fmtPhone = v => { const d = digits(v).slice(0, 11); if (d.length < 9) return d; if (d.startsWith("02")) return d.length === 9 ? `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}` : `${d.slice(0, 2)}-${d.slice(2, 6)}-${d.slice(6)}`; return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`; };
 const fmtReceiptNo = v => { const d = digits(v).slice(0, 8); if (d.length <= 4) return d; return `${d.slice(0, 4)}-${d.slice(4)}`; };
-const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, typeof v === "string" ? v : JSON.stringify(v)); } catch (e) { return null; } };
+const ld = (k) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
 const isHQ = () => S.me && S.me.role === "hq";
 
 function toast(msg, kind = "") {
