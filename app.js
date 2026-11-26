@@ -273,8 +273,9 @@ const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id
 
 async function derive() {
   // ⚠️ Supabase 연동 비활성화 - 로컬 파일 + LocalStorage 사용
-  S.config = {
-    stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC" }],
+  const saved = ld("pos.config");
+  S.config = saved || {
+    stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC", promo: { on: false } }],
     notes: {},
     notice: "",
     staff: [
@@ -284,6 +285,7 @@ async function derive() {
   };
   S.store = "chungcheong";
   ls("pos.store", S.store);
+  if (!saved) ls("pos.config", S.config);
   S.sales = []; S.receipts = []; S.requests = [];
 
   // 로컬 파일에서 초기재고 로드
