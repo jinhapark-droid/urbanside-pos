@@ -364,8 +364,6 @@ async function derive() {
     }
   }
 
-  console.log("products 배열 완료:", productCount);
-
   S.byBc = {}; S.byEz = {}; S.byCode = {};
   for (const p of S.products) {
     S.byBc[p.bc] = p;
@@ -373,10 +371,8 @@ async function derive() {
     S.byCode[String(p.code).toUpperCase()] = p;
   }
 
-  console.log("맵 생성 완료");
   // Supabase 데이터는 로드하지 않음 (로컬 초기재고만 사용)
   S.loaded = true;
-  console.log("derive 완료!");
 }
 // 이전 버전(아난티 초기) 판매 기록도 같은 모양으로 맞춘다
 function normSale(s) {
