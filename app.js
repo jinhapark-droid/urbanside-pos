@@ -63,13 +63,21 @@ function beep(ok) {
 }
 function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === true ? "ok" : ok === false ? "bad" : ""}"></span>${esc(text)}`; }
 
-// ---------- 가격표 로드 ----------
+// ---------- 가격표 로드 (캐싱) ----------
+let cachedPriceMap = null;
 async function loadPriceMapFromGoogleSheets() {
+  // 캐시 비활성화 - 항상 새로 로드
+  // if (cachedPriceMap) return cachedPriceMap;
   try {
-    const priceMap = await fetch('data/price.json').then(r => r.json());
+    // 로컬 price.json 로드 (캐시 무시)
+    const response = await fetch('data/price.json?' + Math.random());
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const priceMap = await response.json();
+    cachedPriceMap = priceMap;
+    console.log("가격표 로드 성공:", Object.keys(priceMap).length, "개 항목");
     return priceMap;
   } catch (e) {
-    console.error("가격표 로드 실패:", e);
+    console.error("가격표 로드 실패:", e.message);
     return {};
   }
 }
@@ -79,11 +87,16 @@ async function loadInitStockFromGoogleSheets() {
   try {
     // 로컬 파일 시도
     try {
+      console.log("로컬 파일 로드 중...");
       const csv = await fetch('data/stock.csv').then(r => r.text());
       if (csv) {
+        console.log("CSV 로드됨, 라인수:", csv.split('\n').length);
         const lines = csv.trim().split('\n').slice(1);
+        console.log("가격맵 로드 시작...");
         const priceMap = await loadPriceMapFromGoogleSheets();
+        console.log("가격맵 로드 완료:", Object.keys(priceMap).length, "개");
         const receipts = [];
+        let debugCount = 0;
         for (const line of lines) {
           if (!line.trim()) continue;
           const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
@@ -93,7 +106,33 @@ async function loadInitStockFromGoogleSheets() {
           const color = cols[3] || "Free";
           const qty = parseInt(cols[4]) || 0;
           if (!name || !bc || qty === 0) continue;
-          const price = priceMap[name] || 0;
+
+          // [26FW] 등의 프리픽스 제거
+          let cleanName = name.replace(/^\[26FW\]\s*/, '').trim();
+
+          // 가격 찾기
+          let price = 0;
+
+          // 1. 먼저 색상을 제거한 상태로 매칭 (stock.csv 형식: "메리노 울 후디 차콜" → "메리노 울 후디")
+          if (color && color !== 'Free') {
+            const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
+            price = priceMap[colorlessName];
+            if (name.includes('메리노')) {
+              console.log(`메리노=${colorlessName}, price=${price}, priceMap size=${Object.keys(priceMap).length}`);
+            }
+          }
+
+          // 2. 색상이 없거나 찾지 못한 경우, 원본 이름으로 매칭
+          if (!price) {
+            price = priceMap[cleanName];
+          }
+
+          // 3. 여전히 없으면 전체 이름으로 시도
+          if (!price) {
+            price = priceMap[name];
+          }
+
+          price = price || 0;
           receipts.push({
             kind: "init",
             label: "26FW_초기재고",
@@ -103,41 +142,52 @@ async function loadInitStockFromGoogleSheets() {
           });
         }
         console.log("로컬 파일 로드 성공:", receipts.length, "개");
+        console.log("가격맵 크기:", Object.keys(priceMap).length, "개");
+        if (receipts.length > 0) {
+          console.log("샘플1:", receipts[0].items[0].name, "→", receipts[0].items[0].unit);
+        }
         return receipts;
       }
     } catch (localErr) {
       console.log("로컬 파일 로드 실패:", localErr.message);
     }
 
-    // Google Sheets CSV에서 로드
-    const sheetUrl = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/export?format=csv&gid=0`;
-    const csv = await fetch(sheetUrl).then(r => r.text());
-    const lines = csv.trim().split('\n').slice(1);
-    const priceMap = await loadPriceMapFromGoogleSheets();
-    const receipts = [];
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
-      const name = cols[0];
-      const bc = cols[1];
-      const size = cols[2] || "F";
-      const color = cols[3] || "Free";
-      const qty = parseInt(cols[4]) || 0;
-      if (!name || !bc || qty === 0) continue;
-      const price = priceMap[name] || 0;
-      receipts.push({
-        kind: "init",
-        label: "26FW_초기재고",
-        ts: new Date().toISOString(),
-        by: "system",
-        items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price }]
-      });
-    }
-    return receipts;
+    // Google Sheets 로드 비활성화 - 로컬 파일만 사용
+    console.log("로컬 파일을 찾을 수 없습니다.");
+    return [];
   } catch (e) {
     console.error("초기재고 로드 실패:", e);
     return [];
+  }
+}
+
+// ---------- LocalStorage 데이터 저장/로드 ----------
+function saveSalesDataToLocalStorage() {
+  const data = {
+    sales: S.sales,
+    receipts: S.receipts,
+    requests: S.requests,
+    timestamp: new Date().toISOString()
+  };
+  ls("pos.salesData", JSON.stringify(data));
+}
+
+function loadSalesDataFromLocalStorage() {
+  try {
+    const data = ls("pos.salesData");
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (parsed.sales && Array.isArray(parsed.sales)) S.sales.push(...parsed.sales);
+      if (parsed.receipts && Array.isArray(parsed.receipts)) {
+        // 초기재고는 이미 로드되었으므로, 그 이후의 입고만 로드
+        const nonInitReceipts = parsed.receipts.filter(r => r.kind !== "init");
+        S.receipts.push(...nonInitReceipts);
+      }
+      if (parsed.requests && Array.isArray(parsed.requests)) S.requests.push(...parsed.requests);
+      console.log("판매 데이터 복구:", S.sales.length, "건의 판매");
+    }
+  } catch (e) {
+    console.error("판매 데이터 로드 실패:", e);
   }
 }
 
@@ -196,7 +246,7 @@ const P = (col, id) => `s/${S.store}/${col}/${id}`;
 const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id) || { id, name: id, code: "X" };
 
 async function derive() {
-  // ⚠️ Supabase 연동 비활성화 - 로컬 파일만 사용
+  // ⚠️ Supabase 연동 비활성화 - 로컬 파일 + LocalStorage 사용
   S.config = { stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC" }], notes: {}, notice: "" };
   S.store = "chungcheong";
   ls("pos.store", S.store);
@@ -206,6 +256,9 @@ async function derive() {
   const initStock = await loadInitStockFromGoogleSheets();
   S.receipts.push(...initStock);
 
+  // LocalStorage에서 판매/입고 데이터 복구
+  loadSalesDataFromLocalStorage();
+
   // 초기재고로부터 products 배열 생성 (각 항목을 product처럼 취급)
   S.products = [];
   const productSet = new Set();
@@ -213,8 +266,10 @@ async function derive() {
   for (const r of initStock) {
     if (r.kind === "init" && r.items) {
       for (const it of r.items) {
-        if (!productSet.has(it.bc)) {
-          productSet.add(it.bc);
+        // 고유키: 바코드 + 사이즈 + 색상 조합
+        const uniqueKey = `${it.bc}|${it.size}|${it.color}`;
+        if (!productSet.has(uniqueKey)) {
+          productSet.add(uniqueKey);
           S.products.push({
             bc: it.bc,
             name: it.name,
@@ -393,13 +448,26 @@ async function commitSale(f) {
   };
   closeModal();
   try {
-    await Net.put(P("sales", id), doc);
-    if (S.exchange) {
-      const o = S.sales.find(x => x.id === S.exchange.id);
-      if (o) await Net.put(P("sales", o.id), { exchangeTo: [...(o.exchangeTo || []), { id, orderNo: doc.orderNo }] }, true);
+    // 로컬 메모리에 판매 기록 저장
+    const sale = { ...doc, id };
+    S.sales.push(sale);
+
+    // LocalStorage에 판매 데이터 저장
+    saveSalesDataToLocalStorage();
+
+    // Supabase에도 시도 (사용 가능하면)
+    try {
+      await Net.put(P("sales", id), doc);
+      if (S.exchange) {
+        const o = S.sales.find(x => x.id === S.exchange.id);
+        if (o) await Net.put(P("sales", o.id), { exchangeTo: [...(o.exchangeTo || []), { id, orderNo: doc.orderNo }] }, true);
+      }
+    } catch (netErr) {
+      console.log("Supabase 저장 실패 (로컬 저장소에는 저장됨):", netErr.message);
     }
+
     S.cart = []; S.orderExc = null; S.exchange = null; render();
-    showReceipt({ ...doc, id });
+    showReceipt(sale);
   } catch (e) { writeFail(e); }
 }
 function writeFail(e) {
@@ -822,7 +890,23 @@ async function doCancel(id, kind) {
   const all = items.every(it => it.cq >= it.qty);
   closeModal();
   try {
-    await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry], status: all ? "canceled" : "partial" }, true);
+    // 로컬 메모리에 취소 기록 업데이트
+    const idx = S.sales.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      S.sales[idx].items = items;
+      S.sales[idx].cancels = [...s.cancels, entry];
+      S.sales[idx].status = all ? "canceled" : "partial";
+      // LocalStorage에 판매 데이터 저장
+      saveSalesDataToLocalStorage();
+    }
+
+    // Supabase에도 시도 (사용 가능하면)
+    try {
+      await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry], status: all ? "canceled" : "partial" }, true);
+    } catch (netErr) {
+      console.log("Supabase 저장 실패 (로컬 저장소에는 저장됨):", netErr.message);
+    }
+
     if (kind === "exchange") {
       S.exchange = { id, orderNo: s.orderNo };
       S.cart = [];
