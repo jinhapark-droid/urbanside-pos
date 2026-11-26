@@ -2066,11 +2066,10 @@ function start() {
   // 타임아웃: 20초 후에도 derive가 완료되지 않으면 강제로 render
   setTimeout(() => {
     if (!deriveCompleted) {
-
       S.loaded = true;
       render();
     }
-  }, 20000);
+  }, 50000);
 }
 $("#who").addEventListener("click", () => { if (S.me && confirm("로그아웃할까요? (다른 직원으로 바꿀 때)")) { Net.logout(); S.cart = []; showGate(); } });
 $("#who").title = "눌러서 로그아웃";
