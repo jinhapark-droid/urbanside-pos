@@ -2071,11 +2071,21 @@ function start() {
   if (!S.me) S.me = { role: "store", store: "chungcheong" };
   render();
   // Supabase 연동 비활성화 - 로컬 데이터만 사용
-  derive().then(() => {
+  let deriveCompleted = false;
+  const derivePromise = derive().then(() => {
+    deriveCompleted = true;
     console.log("🟢 derive() 완료, setConn() 호출");
     setConn(true, "로컬 모드");
     render();
   });
+  // 타임아웃: 20초 후에도 derive가 완료되지 않으면 강제로 render
+  setTimeout(() => {
+    if (!deriveCompleted) {
+      console.warn("⚠️ derive() 타임아웃 (20초), 강제 render 호출");
+      S.loaded = true;
+      render();
+    }
+  }, 20000);
 }
 $("#who").addEventListener("click", () => { if (S.me && confirm("로그아웃할까요? (다른 직원으로 바꿀 때)")) { Net.logout(); S.cart = []; showGate(); } });
 $("#who").title = "눌러서 로그아웃";
