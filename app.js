@@ -1533,22 +1533,38 @@ function viewReport() {
 }
 
 function viewPrice() {
-  // S.products에서 가격 정보 추출
-  const priceMap = {};
+  // S.products에서 가격 정보 추출 (색상별 모두 표시)
+  const priceList = [];
+  const seen = new Set();
+
   for (const p of S.products) {
-    if (!priceMap[p.name] && p.price > 0) {
-      priceMap[p.name] = p.price;  // 할인가 사용
+    if (p.price > 0 && p.name) {
+      // 상품명|색상|사이즈 조합을 고유키로 사용
+      const key = `${p.name}|${p.color}|${p.size}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        priceList.push({
+          name: p.name,
+          color: p.color,
+          size: p.size,
+          price: p.price,
+          category: p.name.split(" ")[0]
+        });
+      }
     }
   }
 
-  // 상품 목록 (가격순)
-  let priceData = Object.entries(priceMap)
-    .map(([name, price]) => {
-      const category = name.split(" ")[0];
-      return { name, price, category };
-    })
+  // 상품 목록 (상품명순, 같은 상품끼리 색상별로)
+  let priceData = priceList
     .filter(p => p.price > 0)  // 0원 필터링
-    .sort((a, b) => b.price - a.price);
+    .sort((a, b) => {
+      // 먼저 색상을 제거한 상품명 기준 정렬
+      const cleanA = a.name.replace(/\s+(차콜|블랙|블루|화이트|브라운|카멜|베이지|오렌지|실버)$/, '');
+      const cleanB = b.name.replace(/\s+(차콜|블랙|블루|화이트|브라운|카멜|베이지|오렌지|실버)$/, '');
+      if (cleanA !== cleanB) return cleanA.localeCompare(cleanB, 'ko');
+      // 같은 상품이면 가격순 (높은 가격이 앞)
+      return b.price - a.price;
+    });
 
   // 검색 필터링
   const searchId = `price-search-${Date.now()}`;

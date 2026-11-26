@@ -53,20 +53,32 @@ with open('data/stock.csv', 'r', encoding='utf-8') as f:
         name = row['상품명']
         color = row['색상']
 
-        # 색상 제거
-        base_name = name.replace('[26FW] ', '').strip()
+        # 색상 제거 (여러 방식 시도)
+        base_name = name.replace('[26FW] ', '').replace('[26FW]', '').strip()
+
+        # 정확한 색상명으로 제거
         base_name_no_color = base_name.replace(f' {color}', '').strip()
 
-        # 가격 찾기
+        # 마지막 단어 제거 (일반적인 색상)
+        words = base_name.split()
+        base_name_last_removed = ' '.join(words[:-1]) if len(words) > 1 else base_name
+
+        # 가격 찾기 (여러 조합 시도)
         normal_price = 0
         discount_price = 0
 
-        if base_name_no_color in price_map:
+        # 먼저 정확한 상품명으로 찾기
+        if name in price_map:
+            normal_price, discount_price = price_map[name]
+        # 색상을 정확히 제거한 버전
+        elif base_name_no_color in price_map:
             normal_price, discount_price = price_map[base_name_no_color]
+        # 마지막 단어 제거 (일반적인 색상)
+        elif base_name_last_removed in price_map:
+            normal_price, discount_price = price_map[base_name_last_removed]
+        # 기본 이름
         elif base_name in price_map:
             normal_price, discount_price = price_map[base_name]
-        elif name in price_map:
-            normal_price, discount_price = price_map[name]
 
         if normal_price > 0:
             final_prices[name] = {"normal": normal_price, "discount": discount_price}
