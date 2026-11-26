@@ -136,14 +136,16 @@ async function loadInitStockFromGoogleSheets() {
           let pricesObj = null;
 
           // 1. prices_full.json에서 정상가와 할인가 정보를 직접 가져오기
-          if (pricesFull[name]) {
-            pricesObj = pricesFull[name];
-          } else if (pricesFull[cleanName]) {
-            pricesObj = pricesFull[cleanName];
-          } else if (color && color !== 'Free') {
-            const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
-            if (pricesFull[colorlessName]) {
-              pricesObj = pricesFull[colorlessName];
+          if (pricesFull && typeof pricesFull === 'object') {
+            if (pricesFull[name]) {
+              pricesObj = pricesFull[name];
+            } else if (pricesFull[cleanName]) {
+              pricesObj = pricesFull[cleanName];
+            } else if (color && color !== 'Free') {
+              const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
+              if (pricesFull[colorlessName]) {
+                pricesObj = pricesFull[colorlessName];
+              }
             }
           }
 
