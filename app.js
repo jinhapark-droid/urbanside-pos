@@ -343,6 +343,8 @@ async function derive() {
             color: it.color || "Free",
             size: it.size || "F",
             price: it.unit || 0,
+            normal: it.normal || 0,
+            discount: it.discount || 0,
             disc: disc
           });
           productCount++;
