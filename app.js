@@ -234,7 +234,14 @@ const Net = (() => {
   }
   return {
     hasPin: () => !!pin,
-    async login(p) { const me = await rpc("pos_login", { p_pin: p }); pin = p; ls("pos.pin", p); return me; },
+    async login(p) {
+      // 로컬 직원 데이터에서 PIN 검증
+      if (!S.config || !S.config.staff) throw new Error("Staff data not loaded");
+      const staff = S.config.staff.find(s => s.pin === p);
+      if (!staff) throw new Error("PIN error");
+      pin = p; ls("pos.pin", p);
+      return { name: staff.name, role: staff.role, store: staff.store };
+    },
     logout() { pin = null; ls("pos.pin", null); docs = {}; ver = 0; },
     docs: () => docs,
     call, rpc, pull,
@@ -1994,7 +2001,10 @@ function showGate(msg = "") {
   setTimeout(() => $("#gate-pin") && $("#gate-pin").focus(), 0);
 }
 function start() {
-  S.loaded = false; S.me = { role: "store", store: "chungcheong" }; render();
+  S.loaded = false;
+  // S.me가 이미 설정되어 있으면 유지, 아니면 기본값 사용
+  if (!S.me) S.me = { role: "store", store: "chungcheong" };
+  render();
   // Supabase 연동 비활성화 - 로컬 데이터만 사용
   derive().then(() => render());
 }
