@@ -119,26 +119,42 @@ async function loadInitStockFromGoogleSheets() {
           // [26FW] 등의 프리픽스 제거
           let cleanName = name.replace(/^\[26FW\]\s*/, '').trim();
 
-          // 가격 찾기
+          // 가격 찾기 (정상가와 할인가)
           let price = 0;
+          let normalPrice = 0;
+          let discountPrice = 0;
+          let pricesObj = null;
 
-          // 1. 먼저 색상을 제거한 상태로 매칭 (stock.csv 형식: "메리노 울 후디 차콜" → "메리노 울 후디")
-          if (color && color !== 'Free') {
+          // 1. prices_full.json에서 정상가와 할인가 정보를 직접 가져오기
+          if (pricesFull[name]) {
+            pricesObj = pricesFull[name];
+          } else if (pricesFull[cleanName]) {
+            pricesObj = pricesFull[cleanName];
+          } else if (color && color !== 'Free') {
             const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
-            price = priceMap[colorlessName];
-            if (name.includes('메리노')) {
-              console.log(`메리노=${colorlessName}, price=${price}, priceMap size=${Object.keys(priceMap).length}`);
+            if (pricesFull[colorlessName]) {
+              pricesObj = pricesFull[colorlessName];
             }
           }
 
-          // 2. 색상이 없거나 찾지 못한 경우, 원본 이름으로 매칭
-          if (!price) {
-            price = priceMap[cleanName];
-          }
-
-          // 3. 여전히 없으면 전체 이름으로 시도
-          if (!price) {
-            price = priceMap[name];
+          if (pricesObj) {
+            normalPrice = pricesObj.normal || 0;
+            discountPrice = pricesObj.discount || normalPrice;
+            price = discountPrice;
+          } else {
+            // 폴백: 기존 priceMap 사용
+            if (color && color !== 'Free') {
+              const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
+              price = priceMap[colorlessName];
+            }
+            if (!price) {
+              price = priceMap[cleanName];
+            }
+            if (!price) {
+              price = priceMap[name];
+            }
+            normalPrice = price;
+            discountPrice = price;
           }
 
           price = price || 0;
@@ -147,13 +163,14 @@ async function loadInitStockFromGoogleSheets() {
             label: "26FW_초기재고",
             ts: new Date().toISOString(),
             by: "system",
-            items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price }]
+            items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price, normal: normalPrice, discount: discountPrice }]
           });
         }
         console.log("로컬 파일 로드 성공:", receipts.length, "개");
         console.log("가격맵 크기:", Object.keys(priceMap).length, "개");
         if (receipts.length > 0) {
-          console.log("샘플1:", receipts[0].items[0].name, "→", receipts[0].items[0].unit);
+          const item = receipts[0].items[0];
+          console.log("샘플1:", item.name, "→ unit:", item.unit, "normal:", item.normal, "discount:", item.discount);
         }
         return receipts;
       }
@@ -300,6 +317,19 @@ async function derive() {
   S.products = [];
   const productSet = new Set();
 
+  // prices_full.json에서 할인가 로드
+  let pricesFull = {};
+  try {
+    const response = await fetch('data/prices_full.json?' + Math.random());
+    if (response.ok) {
+      const data = await response.json();
+      // 형식: { "상품명": { "normal": 정상가, "discount": 할인가 } }
+      pricesFull = data || {};
+    }
+  } catch (e) {
+    console.warn("prices_full.json 로드 실패:", e);
+  }
+
   for (const r of initStock) {
     if (r.kind === "init" && r.items) {
       for (const it of r.items) {
@@ -307,6 +337,20 @@ async function derive() {
         const uniqueKey = `${it.bc}|${it.size}|${it.color}`;
         if (!productSet.has(uniqueKey)) {
           productSet.add(uniqueKey);
+
+          // initStock의 items에서 할인율 계산
+          let disc = 0;
+
+          // items에 normal과 discount 정보가 있으면 사용
+          if (it.normal && it.normal > 0) {
+            const normalPrice = it.normal;
+            const discountPrice = it.discount || it.normal;
+            disc = Math.max(0, Math.min(1, 1 - discountPrice / normalPrice));
+            if (disc > 0) console.log("✓ 할인율:", it.name, "→", Math.round(disc * 100) + "%", "normal:", normalPrice, "disc:", discountPrice);
+          } else {
+            if (it.name && it.name.includes("에일러론")) console.log("✗ 할인율 없음:", it.name, "normal:", it.normal, "discount:", it.discount);
+          }
+
           S.products.push({
             bc: it.bc,
             name: it.name,
@@ -315,7 +359,7 @@ async function derive() {
             color: it.color || "Free",
             size: it.size || "F",
             price: it.unit || 0,
-            disc: 0
+            disc: disc
           });
         }
       }
