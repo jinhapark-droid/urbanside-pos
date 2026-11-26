@@ -427,7 +427,7 @@ function allocate(lines, weights, amount, key) {
 }
 function priceCart(cart, orderExc) {
   const promo = storeCfg().promo || {};
-  const lines = cart.map(c => { const p = S.byBc[c.bc], unit = unitOf(p.price, p.disc); return { c, p, unit, base: unit * c.qty, list: p.price * c.qty, promo: 0, exc: 0, emp: 0 }; });
+  const lines = cart.map(c => { const p = S.byBc[c.bc], unit = unitOf(p.normal, p.disc); return { c, p, unit, base: unit * c.qty, list: p.normal * c.qty, promo: 0, exc: 0, emp: 0 }; });
   const gross = sum(lines, l => l.list), sale = sum(lines, l => l.base);
   const inBasis = lines.filter(l => promo.includeExcluded !== false || l.p.disc > 0);
   const basisAmt = sum(inBasis, l => promo.basis === "list" ? l.list : l.base);
@@ -1276,7 +1276,7 @@ function viewSell() {
       <td class="name-cell"><b>${esc(p.name)}</b>${c.via === "search" ? ` <span class="chip warn">검색으로 담음</span>` : ""}<div class="note mono">${esc(p.ez)} · ${esc(p.bc)}</div>${c.type === "pre" ? `<div class="note warn-txt">${esc(preNote(p))}</div>` : ""}</td>
       <td><b>${esc(p.color)}</b> / <b>${esc(p.size)}</b></td>
       <td class="c"><span class="qty"><button data-act="cq" data-i="${i}" data-d="-1" aria-label="수량 빼기">−</button><b class="num">${c.qty}</b><button data-act="cq" data-i="${i}" data-d="1" aria-label="수량 더하기">+</button></span></td>
-      <td class="r num">${won(p.price)}</td><td class="r num">${won(l.unit)}</td>
+      <td class="r num">${won(p.normal)}</td><td class="r num">${won(l.unit)}</td>
       <td class="r">${p.disc ? `${Math.round(p.disc * 100)}%` : `<span class="chip">할인제외</span>`}${l.promo ? `<div class="note" style="color:var(--go)">+프로모션 ${won(l.promo)}</div>` : ""}${l.exc ? `<div class="note warn-txt">예외 ${won(l.exc)}</div>` : ""}</td>
       <td class="r num"><b>${won(l.net)}</b></td>
       <td class="c"><button class="btn sm" data-act="exc" data-i="${i}">할인</button> <button class="btn sm" data-act="cdel" data-i="${i}">삭제</button></td></tr>`;
