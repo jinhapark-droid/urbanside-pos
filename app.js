@@ -69,12 +69,17 @@ async function loadPriceMapFromGoogleSheets() {
   // 캐시 비활성화 - 항상 새로 로드
   // if (cachedPriceMap) return cachedPriceMap;
   try {
-    // 로컬 price.json 로드 (캐시 무시)
-    const response = await fetch('data/price.json?' + Math.random());
+    // prices_full.json 로드 (할인가 사용)
+    const response = await fetch('data/prices_full.json?' + Math.random());
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const priceMap = await response.json();
+    const pricesFull = await response.json();
+    // prices_full.json에서 "discount" 값을 사용해서 프라이스맵 생성
+    const priceMap = {};
+    for (const [name, prices] of Object.entries(pricesFull)) {
+      priceMap[name] = prices.discount || prices.normal || 0;
+    }
     cachedPriceMap = priceMap;
-    console.log("가격표 로드 성공:", Object.keys(priceMap).length, "개 항목");
+    console.log("가격표 로드 성공 (할인가):", Object.keys(priceMap).length, "개 항목");
     return priceMap;
   } catch (e) {
     console.error("가격표 로드 실패:", e.message);
@@ -1580,9 +1585,9 @@ function viewPrice() {
       <div style="font-size:14px;color:var(--dim)">26.11 프로모션 · <strong style="color:var(--accent)">${priceData.length}개</strong> 상품</div>
     </div>
 
-    <div style="position:sticky;top:0;background:#fff;padding:12px 0;margin-bottom:16px;border-bottom:1px solid #e8e8e8;z-index:10">
+    <div style="position:sticky;top:0;background:transparent;padding:12px 0;margin-bottom:16px;border-bottom:1px solid var(--line);z-index:10">
       <input type="text" id="${searchId}" placeholder="상품명으로 검색..."
-        style="width:100%;padding:12px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit"
+        style="width:100%;padding:12px 16px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:var(--input);color:var(--text)"
         oninput="${handleSearch}">
     </div>
 
@@ -1598,7 +1603,8 @@ function viewPrice() {
         <tbody>
           ${priceData.length ? priceData.map((p, idx) => {
     const cat = getCategory(p.name);
-    return `<tr class="price-row" style="border-bottom:1px solid #e8e8e8;background:${idx % 2 === 0 ? '#fff' : '#fafafa'};transition:all 0.2s" onmouseover="this.style.background='#f5f7ff'" onmouseout="this.style.background='${idx % 2 === 0 ? '#fff' : '#fafafa'}'">
+    const bgColor = idx % 2 === 0 ? 'var(--bg)' : 'rgba(0,0,0,0.03)';
+    return `<tr class="price-row" style="border-bottom:1px solid var(--line);background:${bgColor};transition:all 0.2s;color:var(--text)" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='${bgColor}';this.style.color='var(--text)'">
               <td style="padding:14px 16px;text-align:left">
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="width:3px;height:28px;background:${cat.color};border-radius:2px"></div>
@@ -1608,7 +1614,7 @@ function viewPrice() {
               <td style="padding:14px 16px;text-align:center">
                 <span style="background:${cat.color};color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">${cat.label}</span>
               </td>
-              <td style="padding:14px 16px;text-align:right;font-weight:bold;color:#667eea;font-size:15px">${won(p.price)}</td>
+              <td style="padding:14px 16px;text-align:right;font-weight:bold;color:var(--accent);font-size:15px">${won(p.price)}</td>
             </tr>`;
   }).join("") : `<tr><td colspan="3" style="padding:40px 16px;text-align:center;color:var(--dim);font-size:14px">가격 정보가 있는 상품이 없어요</td></tr>`}
         </tbody>
