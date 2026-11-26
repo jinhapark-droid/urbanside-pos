@@ -80,6 +80,22 @@ with open('data/stock.csv', 'r', encoding='utf-8') as f:
         elif base_name in price_map:
             normal_price, discount_price = price_map[base_name]
 
+        # 가격을 찾지 못했으면 색상 없는 기본 버전의 가격 사용
+        if normal_price == 0:
+            # 색상이 없는 상품명으로 다시 시도 (최대한 느슨한 매칭)
+            if base_name_last_removed in price_map:
+                normal_price, discount_price = price_map[base_name_last_removed]
+
+        # 그래도 없으면 가장 가까운 상품의 가격 사용 (같은 카테고리)
+        if normal_price == 0:
+            for key, (n, d) in price_map.items():
+                # 상품명의 처음 2-3 단어가 같으면 같은 상품으로 간주
+                key_words = key.split()[:3]
+                name_words = base_name.split()[:3]
+                if key_words == name_words and n > 0:
+                    normal_price, discount_price = n, d
+                    break
+
         if normal_price > 0:
             final_prices[name] = {"normal": normal_price, "discount": discount_price}
 
