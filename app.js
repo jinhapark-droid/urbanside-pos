@@ -83,7 +83,7 @@ async function loadPriceMapFromGoogleSheets() {
     for (const [name, prices] of Object.entries(pricesFull)) {
       window.cachedNormalPriceMap[name] = prices.normal || 0;
     }
-    console.log("가격표 로드 성공 (할인가):", Object.keys(priceMap).length, "개 항목");
+
     return priceMap;
   } catch (e) {
     console.error("가격표 로드 실패:", e.message);
@@ -96,14 +96,11 @@ async function loadInitStockFromGoogleSheets() {
   try {
     // 로컬 파일 시도
     try {
-      console.log("로컬 파일 로드 중...");
       const csv = await fetch('data/stock.csv').then(r => r.text());
       if (csv) {
-        console.log("CSV 로드됨, 라인수:", csv.split('\n').length);
+
         const lines = csv.trim().split('\n').slice(1);
-        console.log("가격맵 로드 시작...");
         const priceMap = await loadPriceMapFromGoogleSheets();
-        console.log("가격맵 로드 완료:", Object.keys(priceMap).length, "개");
 
         // prices_full.json 로드
         let pricesFull = {};
@@ -111,7 +108,6 @@ async function loadInitStockFromGoogleSheets() {
           const pf = await fetch('data/prices_full.json?' + Math.random());
           if (pf.ok) pricesFull = await pf.json();
         } catch (e) {
-          console.warn("prices_full.json 로드 실패:", e.message);
         }
 
         const receipts = [];
@@ -178,20 +174,16 @@ async function loadInitStockFromGoogleSheets() {
             items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price, normal: normalPrice, discount: discountPrice }]
           });
         }
-        console.log("로컬 파일 로드 성공:", receipts.length, "개");
-        console.log("가격맵 크기:", Object.keys(priceMap).length, "개");
+
         if (receipts.length > 0) {
           const item = receipts[0].items[0];
-          console.log("샘플1:", item.name, "→ unit:", item.unit, "normal:", item.normal, "discount:", item.discount);
         }
         return receipts;
       }
     } catch (localErr) {
-      console.log("로컬 파일 로드 실패:", localErr.message);
     }
 
     // Google Sheets 로드 비활성화 - 로컬 파일만 사용
-    console.log("로컬 파일을 찾을 수 없습니다.");
     return [];
   } catch (e) {
     console.error("초기재고 로드 실패:", e);
@@ -222,7 +214,6 @@ function loadSalesDataFromLocalStorage() {
         S.receipts.push(...nonInitReceipts);
       }
       if (parsed.requests && Array.isArray(parsed.requests)) S.requests.push(...parsed.requests);
-      console.log("판매 데이터 복구:", S.sales.length, "건의 판매");
     }
   } catch (e) {
     console.error("판매 데이터 로드 실패:", e);
@@ -233,10 +224,6 @@ function loadSalesDataFromLocalStorage() {
 window.exportSalesForSync = function() {
   const data = JSON.parse(ls("pos.salesData") || "{}");
   const output = JSON.stringify(data, null, 2);
-  console.log("=== Google Sheets 동기화용 판매 데이터 ===");
-  console.log(output);
-  console.log("위의 데이터를 복사해서 C:\\Users\\hyoji\\ananti-pos\\data\\sales_sync.json 파일로 저장한 후,");
-  console.log("콘솔에서 sync_sheets.py를 실행하세요: python sync_sheets.py");
   return data;
 };
 
@@ -548,7 +535,7 @@ async function commitSale(f) {
         if (o) await Net.put(P("sales", o.id), { exchangeTo: [...(o.exchangeTo || []), { id, orderNo: doc.orderNo }] }, true);
       }
     } catch (netErr) {
-      console.log("Supabase 저장 실패 (로컬 저장소에는 저장됨):", netErr.message);
+
     }
 
     S.cart = []; S.orderExc = null; S.exchange = null; render();
@@ -692,7 +679,6 @@ function openCancel(id, kind) {
         ${late ? `<label class="check"><input type="checkbox" data-cchk> 기간이 지났지만 본사 승인을 받았어요</label>` : ""}
       </div>`;
   };
-
 
   const openStage2Modal = () => {
     selectedLines = [];
@@ -989,7 +975,7 @@ async function doCancel(id, kind) {
     try {
       await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry], status: all ? "canceled" : "partial" }, true);
     } catch (netErr) {
-      console.log("Supabase 저장 실패 (로컬 저장소에는 저장됨):", netErr.message);
+
     }
 
     if (kind === "exchange") {
@@ -2065,7 +2051,6 @@ function showGate(msg = "") {
   setTimeout(() => $("#gate-pin") && $("#gate-pin").focus(), 0);
 }
 function start() {
-  console.log("🔵 start() 호출됨");
   S.loaded = false;
   // S.me가 이미 설정되어 있으면 유지, 아니면 기본값 사용
   if (!S.me) S.me = { role: "store", store: "chungcheong" };
@@ -2074,14 +2059,14 @@ function start() {
   let deriveCompleted = false;
   const derivePromise = derive().then(() => {
     deriveCompleted = true;
-    console.log("🟢 derive() 완료, setConn() 호출");
+
     setConn(true, "로컬 모드");
     render();
   });
   // 타임아웃: 20초 후에도 derive가 완료되지 않으면 강제로 render
   setTimeout(() => {
     if (!deriveCompleted) {
-      console.warn("⚠️ derive() 타임아웃 (20초), 강제 render 호출");
+
       S.loaded = true;
       render();
     }
