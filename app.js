@@ -1223,7 +1223,7 @@ function renderFinder() {
     const discountPrice = p.discount || p.price;
     return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
     <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
-    <div class="p">${won(normalPrice)}원 정가: ${won(discountPrice)}원</div>
+    <div class="p">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
     <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`;
   }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
 }
