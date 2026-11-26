@@ -329,19 +329,6 @@ async function derive() {
   S.products = [];
   const productSet = new Set();
 
-  // prices_full.json에서 할인가 로드
-  let pricesFull = {};
-  try {
-    const response = await fetch('data/prices_full.json?' + Math.random());
-    if (response.ok) {
-      const data = await response.json();
-      // 형식: { "상품명": { "normal": 정상가, "discount": 할인가 } }
-      pricesFull = data || {};
-    }
-  } catch (e) {
-    console.warn("prices_full.json 로드 실패:", e);
-  }
-
   for (const r of initStock) {
     if (r.kind === "init" && r.items) {
       for (const it of r.items) {
