@@ -1608,7 +1608,8 @@ function viewPrice() {
         <thead>
           <tr style="background:var(--dim);color:#fff">
             <th style="padding:16px;text-align:left;font-weight:700;font-size:14px">상품명</th>
-            <th style="padding:16px;text-align:center;font-weight:700;font-size:14px;width:120px">카테고리</th>
+            <th style="padding:16px;text-align:center;font-weight:700;font-size:14px;width:100px">색상</th>
+            <th style="padding:16px;text-align:center;font-weight:700;font-size:14px;width:80px">사이즈</th>
             <th style="padding:16px;text-align:right;font-weight:700;font-size:14px;width:140px">판매가</th>
           </tr>
         </thead>
@@ -1623,12 +1624,11 @@ function viewPrice() {
                   <span style="font-size:14px;font-weight:500;color:var(--text)">${esc(p.name)}</span>
                 </div>
               </td>
-              <td style="padding:14px 16px;text-align:center">
-                <span style="background:${cat.color};color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600">${cat.label}</span>
-              </td>
+              <td style="padding:14px 16px;text-align:center;font-size:13px;color:var(--text)">${esc(p.color)}</td>
+              <td style="padding:14px 16px;text-align:center;font-size:13px;color:var(--text)">${esc(p.size)}</td>
               <td style="padding:14px 16px;text-align:right;font-weight:bold;color:var(--accent);font-size:15px">${won(p.price)}</td>
             </tr>`;
-  }).join("") : `<tr><td colspan="3" style="padding:40px 16px;text-align:center;color:var(--dim);font-size:14px">가격 정보가 있는 상품이 없어요</td></tr>`}
+  }).join("") : `<tr><td colspan="4" style="padding:40px 16px;text-align:center;color:var(--dim);font-size:14px">가격 정보가 있는 상품이 없어요</td></tr>`}
         </tbody>
       </table>
     </div>

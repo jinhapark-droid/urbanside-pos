@@ -42,7 +42,11 @@ for i, row in enumerate(price_data[2:], start=3):  # 헤더 2줄 제외
             except:
                 pass
 
-print(f"가격표에서 로드: {len(price_map)}개 상품 (26.11 블프)")
+# 테고 가격 추가 (정가 59000, 할인가 54000)
+price_map["어반사이드 테고 1.5P"] = (59000, 54000)
+price_map["테고 1.5P"] = (59000, 54000)
+
+print(f"가격표에서 로드: {len(price_map)-2}개 상품 (26.11 블프) + 테고 2개")
 
 # stock.csv 처리해서 최종 가격표 생성
 final_prices = {}  # {상품명: {"normal": 정상가, "discount": 할인가}}
