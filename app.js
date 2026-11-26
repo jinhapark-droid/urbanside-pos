@@ -85,26 +85,31 @@ async function loadInitStockFromGoogleSheets() {
         const priceMap = await loadPriceMapFromGoogleSheets();
         const receipts = [];
         for (const line of lines) {
+          if (!line.trim()) continue;
           const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
           const name = cols[0];
-          const qty = parseInt(cols[1]) || 0;
-          if (!name || qty === 0) continue;
+          const bc = cols[1];
+          const size = cols[2] || "F";
+          const color = cols[3] || "Free";
+          const qty = parseInt(cols[4]) || 0;
+          if (!name || !bc || qty === 0) continue;
           const price = priceMap[name] || 0;
           receipts.push({
             kind: "init",
             label: "26FW_초기재고",
             ts: new Date().toISOString(),
             by: "system",
-            items: [{ bc: name, name: name, qty: qty, unit: price }]
+            items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price }]
           });
         }
+        console.log("로컬 파일 로드 성공:", receipts.length, "개");
         return receipts;
       }
     } catch (localErr) {
-      console.log("로컬 파일 로드 실패, Google Sheets에서 로드 시도");
+      console.log("로컬 파일 로드 실패:", localErr.message);
     }
 
-    // Google Sheets CSV에서 로드 (CORS 우회 불가능하면 실패)
+    // Google Sheets CSV에서 로드
     const sheetUrl = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/export?format=csv&gid=0`;
     const csv = await fetch(sheetUrl).then(r => r.text());
     const lines = csv.trim().split('\n').slice(1);
@@ -112,17 +117,21 @@ async function loadInitStockFromGoogleSheets() {
     const receipts = [];
 
     for (const line of lines) {
+      if (!line.trim()) continue;
       const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
       const name = cols[0];
-      const qty = parseInt(cols[1]) || 0;
-      if (!name || qty === 0) continue;
+      const bc = cols[1];
+      const size = cols[2] || "F";
+      const color = cols[3] || "Free";
+      const qty = parseInt(cols[4]) || 0;
+      if (!name || !bc || qty === 0) continue;
       const price = priceMap[name] || 0;
       receipts.push({
         kind: "init",
         label: "26FW_초기재고",
         ts: new Date().toISOString(),
         by: "system",
-        items: [{ bc: name, name: name, qty: qty, unit: price }]
+        items: [{ bc: bc, name: name, size: size, color: color, qty: qty, unit: price }]
       });
     }
     return receipts;
@@ -200,18 +209,19 @@ async function derive() {
   // 초기재고로부터 products 배열 생성 (각 항목을 product처럼 취급)
   S.products = [];
   const productSet = new Set();
+
   for (const r of initStock) {
     if (r.kind === "init" && r.items) {
       for (const it of r.items) {
-        if (!productSet.has(it.name)) {
-          productSet.add(it.name);
+        if (!productSet.has(it.bc)) {
+          productSet.add(it.bc);
           S.products.push({
             bc: it.bc,
             name: it.name,
-            ez: it.name,
-            code: it.name,
-            color: "Free",
-            size: "F",
+            ez: it.bc,
+            code: it.bc,
+            color: it.color || "Free",
+            size: it.size || "F",
             price: it.unit || 0,
             disc: 0
           });
