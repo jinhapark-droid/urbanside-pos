@@ -2012,12 +2012,14 @@ function showGate(msg = "") {
   setTimeout(() => $("#gate-pin") && $("#gate-pin").focus(), 0);
 }
 function start() {
+  console.log("🔵 start() 호출됨");
   S.loaded = false;
   // S.me가 이미 설정되어 있으면 유지, 아니면 기본값 사용
   if (!S.me) S.me = { role: "store", store: "chungcheong" };
   render();
   // Supabase 연동 비활성화 - 로컬 데이터만 사용
   derive().then(() => {
+    console.log("🟢 derive() 완료, setConn() 호출");
     setConn(true, "로컬 모드 (Supabase 미연결)");
     render();
   });
