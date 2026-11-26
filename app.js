@@ -1942,7 +1942,7 @@ document.addEventListener("click", async e => {
       // 로컬 직원 데이터에 추가
       S.config.staff = S.config.staff || [];
       S.config.staff.push({ name, pin, role, store, active: true });
-      ls("pos.config", JSON.stringify(S.config));
+      ls("pos.config", S.config);
       await loadStaff();
       toast(`${name} PIN: ${pin} — 본인에게만 전달해 주세요.`, "go");
     } catch (err) { writeFail(err); }
