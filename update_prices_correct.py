@@ -76,6 +76,25 @@ for name, (normal, discount) in price_map.items():
     if name not in final_prices:
         final_prices[name] = {"normal": normal, "discount": discount}
 
+# 색상이 없는 버전도 추가 (stock.csv의 색상 제거 매칭용)
+colorless_map = {}
+for name, prices in final_prices.items():
+    # "[26FW] " 제거 후 색상 제거
+    base = name.replace('[26FW] ', '').replace('[26FW]', '').strip()
+
+    # 마지막 단어가 색상일 가능성 높으므로 제거
+    words = base.split()
+    if len(words) > 1:
+        # 마지막 단어 제거 (색상명)
+        colorless = ' '.join(words[:-1])
+        if colorless not in colorless_map:
+            colorless_map[colorless] = prices
+
+# colorless_map을 final_prices에 추가
+for name, prices in colorless_map.items():
+    if name not in final_prices:
+        final_prices[name] = prices
+
 # stock.csv 항목용 단순 가격 JSON도 생성 (app.js 호환성)
 simple_prices = {}
 for name, prices in final_prices.items():

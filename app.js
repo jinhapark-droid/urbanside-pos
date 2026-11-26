@@ -1533,15 +1533,11 @@ function viewReport() {
 }
 
 function viewPrice() {
-  // 초기재고 receipts (kind: "init")에서 가격 정보 추출 (0원 제외)
+  // S.products에서 가격 정보 추출
   const priceMap = {};
-  for (const r of S.receipts) {
-    if (r.kind === "init" && r.items) {
-      for (const it of r.items) {
-        if (!priceMap[it.name] && it.unit > 0) {  // 가격 0원 제외
-          priceMap[it.name] = it.unit;
-        }
-      }
+  for (const p of S.products) {
+    if (!priceMap[p.name] && p.price > 0) {
+      priceMap[p.name] = p.price;  // 할인가 사용
     }
   }
 
@@ -1594,7 +1590,7 @@ function viewPrice() {
     <div style="border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
       <table class="full-width" style="border-collapse:collapse;width:100%">
         <thead>
-          <tr style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff">
+          <tr style="background:var(--dim);color:#fff">
             <th style="padding:16px;text-align:left;font-weight:700;font-size:14px">상품명</th>
             <th style="padding:16px;text-align:center;font-weight:700;font-size:14px;width:120px">카테고리</th>
             <th style="padding:16px;text-align:right;font-weight:700;font-size:14px;width:140px">판매가</th>
@@ -1603,12 +1599,12 @@ function viewPrice() {
         <tbody>
           ${priceData.length ? priceData.map((p, idx) => {
     const cat = getCategory(p.name);
-    const bgColor = idx % 2 === 0 ? 'var(--bg)' : 'rgba(0,0,0,0.03)';
+    const bgColor = idx % 2 === 0 ? 'transparent' : 'var(--border)';
     return `<tr class="price-row" style="border-bottom:1px solid var(--line);background:${bgColor};transition:all 0.2s;color:var(--text)" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='${bgColor}';this.style.color='var(--text)'">
               <td style="padding:14px 16px;text-align:left">
                 <div style="display:flex;align-items:center;gap:10px">
                   <div style="width:3px;height:28px;background:${cat.color};border-radius:2px"></div>
-                  <span style="font-size:14px;font-weight:500">${esc(p.name)}</span>
+                  <span style="font-size:14px;font-weight:500;color:var(--text)">${esc(p.name)}</span>
                 </div>
               </td>
               <td style="padding:14px 16px;text-align:center">
