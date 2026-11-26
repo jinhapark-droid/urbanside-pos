@@ -329,6 +329,7 @@ async function derive() {
   S.products = [];
   const productSet = new Set();
 
+  let productCount = 0;
   for (const r of initStock) {
     if (r.kind === "init" && r.items) {
       for (const it of r.items) {
@@ -345,9 +346,6 @@ async function derive() {
             const normalPrice = it.normal;
             const discountPrice = it.discount || it.normal;
             disc = Math.max(0, Math.min(1, 1 - discountPrice / normalPrice));
-            if (disc > 0) console.log("✓ 할인율:", it.name, "→", Math.round(disc * 100) + "%", "normal:", normalPrice, "disc:", discountPrice);
-          } else {
-            if (it.name && it.name.includes("에일러론")) console.log("✗ 할인율 없음:", it.name, "normal:", it.normal, "discount:", it.discount);
           }
 
           S.products.push({
@@ -360,16 +358,25 @@ async function derive() {
             price: it.unit || 0,
             disc: disc
           });
+          productCount++;
         }
       }
     }
   }
 
-  S.byBc = {}; S.byEz = {}; S.byCode = {};
-  for (const p of S.products) { S.byBc[p.bc] = p; S.byEz[normEz(p.ez)] = p; S.byCode[String(p.code).toUpperCase()] = p; }
+  console.log("products 배열 완료:", productCount);
 
+  S.byBc = {}; S.byEz = {}; S.byCode = {};
+  for (const p of S.products) {
+    S.byBc[p.bc] = p;
+    S.byEz[normEz(p.ez)] = p;
+    S.byCode[String(p.code).toUpperCase()] = p;
+  }
+
+  console.log("맵 생성 완료");
   // Supabase 데이터는 로드하지 않음 (로컬 초기재고만 사용)
   S.loaded = true;
+  console.log("derive 완료!");
 }
 // 이전 버전(아난티 초기) 판매 기록도 같은 모양으로 맞춘다
 function normSale(s) {
