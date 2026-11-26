@@ -191,6 +191,17 @@ function loadSalesDataFromLocalStorage() {
   }
 }
 
+// Google Sheets 동기화용 판매 데이터 export
+window.exportSalesForSync = function() {
+  const data = JSON.parse(ls("pos.salesData") || "{}");
+  const output = JSON.stringify(data, null, 2);
+  console.log("=== Google Sheets 동기화용 판매 데이터 ===");
+  console.log(output);
+  console.log("위의 데이터를 복사해서 C:\\Users\\hyoji\\ananti-pos\\data\\sales_sync.json 파일로 저장한 후,");
+  console.log("콘솔에서 sync_sheets.py를 실행하세요: python sync_sheets.py");
+  return data;
+};
+
 // ---------- 서버 연결 (6초마다 바뀐 게 있는지 확인) ----------
 const Net = (() => {
   let pin = ls("pos.pin"), docs = {}, ver = 0, busy = false, timer = null, onChange = () => {}, onAuth = () => {};
@@ -437,14 +448,16 @@ async function commitSale(f) {
     cq: 0, rs: 0, df: 0, rt: 0, note: l.c.type === "pre" ? preNote(l.p) : "",
   }));
   const id = "S" + dayKey(now).replace(/-/g, "") + "-" + hm(now).replace(":", "") + "-" + Math.random().toString(36).slice(2, 6);
+  const orderNo = S.exchange ? S.exchange.orderNo + "_EX" : nextOrderNo(now);
   const doc = {
-    ts: now, day: dayKey(now), store: S.store, orderNo: nextOrderNo(now), rt: token(20), by: S.me.name, items,
+    ts: now, day: dayKey(now), store: S.store, orderNo, rt: token(20), by: S.me.name, items,
     qty: pr.qty, gross: pr.gross, baseDisc: pr.baseDisc, promoDisc: pr.promoTotal, promoInfo: pr.hit ? { ...pr.promo } : null,
     excDisc: pr.excTotal, orderExc: S.orderExc ? { ...S.orderExc, amount: pr.orderExcAmt } : null, excWarn: pr.warn,
     total: pr.total, paid: f.paid, memo: f.memo, custName: f.name, custPhone: f.phone, hyundaiReceiptNo: f.hyundaiReceiptNo,
     ship: needShip ? { name: f.rname, phone: f.rphone, addr: f.addr, memo: f.smemo } : null,
     consent: needShip ? { ts: now, by: S.me.name } : null,
     cancels: [], status: "done", exchangeOf: S.exchange ? { id: S.exchange.id, orderNo: S.exchange.orderNo } : null,
+    synced: false,
   };
   closeModal();
   try {

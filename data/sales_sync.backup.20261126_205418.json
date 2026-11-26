@@ -1,0 +1,59 @@
+{
+  "receipts": [],
+  "requests": [],
+  "sales": [
+    {
+      "baseDisc": 0,
+      "cancels": [],
+      "consent": null,
+      "custName": "",
+      "custPhone": "",
+      "day": "2026-11-26",
+      "excDisc": 0,
+      "excWarn": false,
+      "exchangeOf": null,
+      "gross": 129000,
+      "hyundaiReceiptNo": null,
+      "id": "S20261126-2046-9wvn",
+      "items": [
+        {
+          "bc": "S04005",
+          "color": "차콜",
+          "cq": 0,
+          "df": 0,
+          "disc": 0,
+          "exc": 0,
+          "excInfo": null,
+          "ez": "S04005",
+          "name": "[26FW] 메리노 울 후디 차콜",
+          "net": 129000,
+          "note": "",
+          "price": 129000,
+          "promo": 0,
+          "qty": 1,
+          "rs": 0,
+          "rt": 0,
+          "size": "XL",
+          "type": "pickup",
+          "unit": 129000,
+          "via": "scan"
+        }
+      ],
+      "memo": "",
+      "orderExc": null,
+      "orderNo": "HD_CC261126-001",
+      "paid": 129000,
+      "promoDisc": 0,
+      "promoInfo": null,
+      "qty": 1,
+      "rt": "wztxpru2km79qc47qt2v",
+      "ship": null,
+      "status": "done",
+      "store": "chungcheong",
+      "synced": false,
+      "total": 129000,
+      "ts": 1795693575272
+    }
+  ],
+  "timestamp": "2026-11-26T11:46:15.273Z"
+}
