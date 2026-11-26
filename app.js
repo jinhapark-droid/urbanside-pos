@@ -66,10 +66,8 @@ function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === t
 // ---------- 가격표 로드 (캐싱) ----------
 let cachedPriceMap = null;
 async function loadPriceMapFromGoogleSheets() {
-  // 캐시 비활성화 - 항상 새로 로드
-  // if (cachedPriceMap) return cachedPriceMap;
   try {
-    // prices_full.json 로드 (할인가 사용)
+    // prices_full.json 로드 (정가와 할인가 모두)
     const response = await fetch('data/prices_full.json?' + Math.random());
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const pricesFull = await response.json();
@@ -79,6 +77,11 @@ async function loadPriceMapFromGoogleSheets() {
       priceMap[name] = prices.discount || prices.normal || 0;
     }
     cachedPriceMap = priceMap;
+    // 정가 맵도 저장 (renderFinder에서 사용)
+    window.cachedNormalPriceMap = {};
+    for (const [name, prices] of Object.entries(pricesFull)) {
+      window.cachedNormalPriceMap[name] = prices.normal || 0;
+    }
     console.log("가격표 로드 성공 (할인가):", Object.keys(priceMap).length, "개 항목");
     return priceMap;
   } catch (e) {
@@ -1161,10 +1164,16 @@ function renderFinder() {
   const box = $("#finder-list"); if (!box) return;
   const L = ledger(), q = ($("#finder-q").value || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
   const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
-  box.innerHTML = hits.map(p => { const st = L.stock(p.bc); return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
+  box.innerHTML = hits.map(p => {
+    const st = L.stock(p.bc);
+    // 정가 찾기
+    const normalMap = window.cachedNormalPriceMap || {};
+    let normalPrice = normalMap[p.name] || p.price;
+    return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
     <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
-    <div class="p">${won(unitOf(p.price, p.disc))}원 ${p.disc ? `<span class="chip info">${Math.round(p.disc * 100)}%</span>` : `<span class="chip">할인제외</span>`}</div>
-    <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`; }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
+    <div class="p">${won(p.price)}원 정가: ${won(normalPrice)}원</div>
+    <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`;
+  }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
 }
 function openExc(i) {
   const c = i === "order" ? S.orderExc : S.cart[+i].exc, p = i === "order" ? null : S.byBc[S.cart[+i].bc];
