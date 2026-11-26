@@ -104,6 +104,16 @@ async function loadInitStockFromGoogleSheets() {
         console.log("가격맵 로드 시작...");
         const priceMap = await loadPriceMapFromGoogleSheets();
         console.log("가격맵 로드 완료:", Object.keys(priceMap).length, "개");
+
+        // prices_full.json 로드
+        let pricesFull = {};
+        try {
+          const pf = await fetch('data/prices_full.json?' + Math.random());
+          if (pf.ok) pricesFull = await pf.json();
+        } catch (e) {
+          console.warn("prices_full.json 로드 실패:", e.message);
+        }
+
         const receipts = [];
         let debugCount = 0;
         for (const line of lines) {
