@@ -1216,12 +1216,12 @@ function renderFinder() {
   const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
   box.innerHTML = hits.map(p => {
     const st = L.stock(p.bc);
-    // 정가 찾기
-    const normalMap = window.cachedNormalPriceMap || {};
-    let normalPrice = normalMap[p.name] || p.price;
+    // 정가와 할인가
+    const normalPrice = p.normal || p.price;
+    const discountPrice = p.discount || p.price;
     return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
     <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
-    <div class="p">${won(p.price)}원 정가: ${won(normalPrice)}원</div>
+    <div class="p">${won(normalPrice)}원 정가: ${won(discountPrice)}원</div>
     <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`;
   }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
 }
