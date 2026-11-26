@@ -1782,7 +1782,11 @@ function viewAdmin() {
     </div></section></div>`;
 }
 async function saveConfig(patch) {
-  try { await Net.put("config/main", { ...S.config, ...patch }); toast("설정을 저장했어요.", "go"); } catch (e) { writeFail(e); }
+  try {
+    S.config = { ...S.config, ...patch };
+    ls("pos.config", S.config);
+    toast("설정을 저장했어요.", "go");
+  } catch (e) { writeFail(e); }
 }
 async function loadStaff() {
   try {
@@ -2020,7 +2024,7 @@ function start() {
   // Supabase 연동 비활성화 - 로컬 데이터만 사용
   derive().then(() => {
     console.log("🟢 derive() 완료, setConn() 호출");
-    setConn(true, "로컬 모드 (Supabase 미연결)");
+    setConn(true, "로컬 모드");
     render();
   });
 }
