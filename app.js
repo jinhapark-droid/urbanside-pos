@@ -1785,7 +1785,11 @@ async function saveConfig(patch) {
   try { await Net.put("config/main", { ...S.config, ...patch }); toast("설정을 저장했어요.", "go"); } catch (e) { writeFail(e); }
 }
 async function loadStaff() {
-  try { S.staff = await Net.call("pos_staff_list"); render(); } catch (e) { writeFail(e); }
+  try {
+    // 로컬 직원 데이터 로드
+    S.staff = S.config?.staff || [];
+    render();
+  } catch (e) { writeFail(e); }
 }
 
 // ---------- 이벤트 ----------
@@ -1927,7 +1931,14 @@ document.addEventListener("click", async e => {
     const name = $("#sf-name").value.trim(), role = $("#sf-role").value, store = role === "hq" ? "" : $("#sf-store").value;
     if (!name) { toast("직원 이름을 입력해 주세요.", "bad"); return; }
     const pin = pin8();
-    try { await Net.call("pos_staff_set", { p_staff_pin: pin, p_name: name, p_role: role, p_store: store, p_active: true }); await loadStaff(); toast(`${name} PIN: ${pin} — 본인에게만 전달해 주세요.`, "go"); } catch (err) { writeFail(err); }
+    try {
+      // 로컬 직원 데이터에 추가
+      S.config.staff = S.config.staff || [];
+      S.config.staff.push({ name, pin, role, store, active: true });
+      ls("pos.config", JSON.stringify(S.config));
+      await loadStaff();
+      toast(`${name} PIN: ${pin} — 본인에게만 전달해 주세요.`, "go");
+    } catch (err) { writeFail(err); }
   }
   else if (a === "staff-toggle") {
     const x = S.staff.find(y => y.pin === d.pin);
@@ -2006,7 +2017,10 @@ function start() {
   if (!S.me) S.me = { role: "store", store: "chungcheong" };
   render();
   // Supabase 연동 비활성화 - 로컬 데이터만 사용
-  derive().then(() => render());
+  derive().then(() => {
+    setConn(true, "로컬 모드 (Supabase 미연결)");
+    render();
+  });
 }
 $("#who").addEventListener("click", () => { if (S.me && confirm("로그아웃할까요? (다른 직원으로 바꿀 때)")) { Net.logout(); S.cart = []; showGate(); } });
 $("#who").title = "눌러서 로그아웃";
