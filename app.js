@@ -78,10 +78,13 @@ async function loadPriceMapFromGoogleSheets() {
       priceMap[name] = prices.discount || prices.normal || 0;
     }
     cachedPriceMap = priceMap;
-    // 정가 맵도 저장 (renderFinder에서 사용)
-    window.cachedNormalPriceMap = {};
+    // 정가·할인가 맵 저장 (renderFinder에서 사용)
+    window.cachedPricesFullMap = {};
     for (const [name, prices] of Object.entries(pricesFull)) {
-      window.cachedNormalPriceMap[name] = prices.normal || 0;
+      window.cachedPricesFullMap[name] = {
+        normal: prices.normal || 0,
+        discount: prices.discount || prices.normal || 0
+      };
     }
 
     return priceMap;
