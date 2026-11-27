@@ -2178,9 +2178,12 @@ function start() {
       Net.start(
         () => {
           const docs = Net.docs();
-          // ✅ 초기화: Supabase sales/receipts 무시, 로컬만 사용
-          // S.sales = []; (로컬 Google Sheets 초기 재고만 유지)
-          console.log(`✓ Supabase 연동됨 - 로컬 초기화 모드: 판매기록 없음, 재고 225개 유지`);
+          // ✅ Supabase sales 로드 (새 주문 포함)
+          // 초기 재고는 Google Sheets 기준 (225개) 유지
+          if (docs.sales && docs.sales.length > 0) {
+            S.sales = docs.sales;
+          }
+          console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개, 초기 재고 225개 유지`);
 
           render();
         },
