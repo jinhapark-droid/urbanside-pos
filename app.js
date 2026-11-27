@@ -2162,7 +2162,10 @@ function showGate(msg = "") {
         Net.start(
           () => {
             const docs = Net.docs();
-            S.sales = docs.sales || [];
+            const prefix = `s/${S.store}/sales/`;
+            S.sales = Object.entries(docs)
+              .filter(([path]) => path.startsWith(prefix))
+              .map(([, doc]) => doc);
             console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개`);
             render();
           },
@@ -2196,7 +2199,10 @@ function start() {
           const docs = Net.docs();
           // ✅ Supabase sales 항상 로드 (새 주문 포함)
           // 초기 재고는 Google Sheets 기준 (225개) 유지
-          S.sales = docs.sales || [];
+          const prefix = `s/${S.store}/sales/`;
+          S.sales = Object.entries(docs)
+            .filter(([path]) => path.startsWith(prefix))
+            .map(([, doc]) => doc);
           console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개, 초기 재고 225개 유지`);
 
           render();
