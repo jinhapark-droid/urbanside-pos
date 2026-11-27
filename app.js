@@ -644,6 +644,15 @@ function lineState(it) {
   if ((it.ezc || 0) > (it.ezcDone || 0)) parts.push(`<span class="chip bad">이지어드민 발주 취소 필요</span>`);
   return parts.join(" ");
 }
+function deleteSale(id) {
+  const s = S.sales.find(x => x.id === id); if (!s) return;
+  if (!confirm(`주문 ${displayOrderNo(s.orderNo)} (${saleSummary(s)})을(를) 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+  S.sales = S.sales.filter(x => x.id !== id);
+  saveStoreData();
+  closeModal();
+  renderSalesTable();
+  alert("주문이 삭제되었습니다.");
+}
 function openOrder(id) {
   const s = S.sales.find(x => x.id === id); if (!s) return;
   const canShipEdit = s.ship && s.items.some(it => it.type !== "pickup" && !it.exp && it.qty - it.cq > 0);
@@ -671,7 +680,8 @@ function openOrder(id) {
      ${!s.hyundaiReceiptNo ? `<button class="btn warn" data-act="receipt-edit" data-id="${s.id}">영수증 번호 입력</button>` : ""}
      <button class="btn" data-act="memo-edit" data-id="${s.id}">메모·실결제 수정</button>
      ${canShipEdit ? `<button class="btn" data-act="ship-edit" data-id="${s.id}">배송정보 수정</button>` : ""}
-     ${left ? `<button class="btn yellow" data-act="cancel-open" data-id="${s.id}" data-k="exchange">교환</button><button class="btn primary" data-act="cancel-open" data-id="${s.id}" data-k="cancel">취소·환불</button>` : ""}`);
+     ${left ? `<button class="btn yellow" data-act="cancel-open" data-id="${s.id}" data-k="exchange">교환</button><button class="btn primary" data-act="cancel-open" data-id="${s.id}" data-k="cancel">취소·환불</button>` : ""}
+     <button class="btn bad" data-act="delete-order" data-id="${s.id}">주문 삭제</button>`);
 }
 const RULES = `<details class="box"><summary>상황별 처리 규칙 (백화점 POS · 이 POS · 이지어드민)</summary>
   <table class="rules" style="margin-top:8px"><thead><tr><th>상황</th><th>백화점 POS</th><th>이 POS</th><th>이지어드민</th></tr></thead><tbody>
@@ -2006,6 +2016,7 @@ document.addEventListener("click", async e => {
   }
   else if (a === "order") openOrder(d.id);
   else if (a === "receipt") { const s = S.sales.find(x => x.id === d.id); if (s) showReceipt(s); }
+  else if (a === "delete-order") deleteSale(d.id);
   else if (a === "cancel-open") openCancel(d.id, d.k);
   else if (a === "cancel-do") doCancel(d.id, d.k);
   else if (a === "stock-adjust") openStockAdjust(d.bc);
