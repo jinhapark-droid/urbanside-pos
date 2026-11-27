@@ -734,10 +734,10 @@ function openCancel(id, kind) {
         const basePrice = it.unit * it.qty;
         const itemDisc = shouldPromo ? Math.round(basePrice * (promo.rate || 0.05)) : 0;
         const itemPrice = basePrice - itemDisc;
-        return `<div style="display:flex;justify-content:space-between;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1)">
-          <span><b>${esc(it.name)}</b> ${esc(it.color)} / ${esc(it.size)} ×<b>${it.qty}</b></span>
-          <span style="text-align:right"><div style="font-size:11px;color:var(--dim);${itemDisc > 0 ? 'text-decoration:line-through' : ''}">${won(basePrice)}</div><div style="font-weight:bold;color:var(--go)">${won(itemPrice)}</div></span>
-          <button class="btn sm" data-act="new-item-del" data-idx="${idx}" style="margin-left:8px">삭제</button>
+        return `<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;margin:6px 0;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.1)">
+          <div><b>${esc(it.name)}</b> <span style="color:var(--dim);font-size:12px">${esc(it.color)} / ${esc(it.size)}</span> ×<b>${it.qty}</b></div>
+          <div style="text-align:right"><div style="font-size:11px;color:var(--dim);${itemDisc > 0 ? 'text-decoration:line-through' : ''}">${won(basePrice)}</div><div style="font-weight:bold;color:var(--go)">${won(itemPrice)}</div></div>
+          <button class="btn sm" data-act="new-item-del" data-idx="${idx}">삭제</button>
         </div>`;
       }).join("");
     };
