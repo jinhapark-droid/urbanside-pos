@@ -1358,7 +1358,7 @@ function render() {
   if (!tabs.some(t => t[0] === S.tab)) S.tab = "sell";
   $("#tabs").innerHTML = tabs.map(([k, l]) => `<a href="#${k}" data-tab="${k}" ${k === S.tab ? 'aria-current="page"' : ""}>${l}</a>`).join("");
   const main = $("#main");
-  if (!S.me) { main.innerHTML = ""; return; }
+  if (!S.me) { showGate(); return; }
   $("#who").textContent = `${S.me.name}${isHQ() ? " (본사)" : ""}`;
   if (S.loaded) $("#store-chip").innerHTML = isHQ() ? `<select id="store-sel" aria-label="매장">${S.config.stores.map(s => `<option value="${esc(s.id)}" ${s.id === S.store ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select>` : esc(storeCfg().name);
   if (!S.loaded) { main.innerHTML = `<div class="empty"><strong>데이터를 불러오는 중이에요</strong>잠시만 기다려 주세요.</div>`; return; }
