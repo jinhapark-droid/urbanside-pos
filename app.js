@@ -811,8 +811,14 @@ function openCancel(id, kind) {
           e.preventDefault();
           if (cachedMatches.length > 0) {
             const p = cachedMatches[0];
+            let normalPrice = p.normal || 0;
+            let discountPrice = p.discount || 0;
+            if (!normalPrice && !discountPrice) {
+              normalPrice = p.price;
+              discountPrice = p.price;
+            }
             const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: discountPrice, normal: normalPrice, qty: 1 });
             scanInput.value = "";
             searchResults.style.display = "none";
             cachedMatches = [];
@@ -822,8 +828,14 @@ function openCancel(id, kind) {
             if (!q) return;
             const p = findProduct(q) || S.byBc[q];
             if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
+            let normalPrice = p.normal || 0;
+            let discountPrice = p.discount || 0;
+            if (!normalPrice && !discountPrice) {
+              normalPrice = p.price;
+              discountPrice = p.price;
+            }
             const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: discountPrice, normal: normalPrice, qty: 1 });
             scanInput.value = "";
             searchResults.style.display = "none";
             updateCalc();
@@ -843,7 +855,16 @@ function openCancel(id, kind) {
             const p = cachedMatches[idx];
             if (p) {
               const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-              if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+              // normal 정보도 함께 저장
+            let normalPrice = p.normal || 0;
+            let discountPrice = p.discount || 0;
+
+            if (!normalPrice && !discountPrice) {
+              normalPrice = p.price;
+              discountPrice = p.price;
+            }
+
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: discountPrice, normal: normalPrice, qty: 1 });
               const scanInput = $("#new-scan");
               scanInput.value = "";
               searchResults.style.display = "none";
