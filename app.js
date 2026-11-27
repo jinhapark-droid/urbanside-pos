@@ -2163,10 +2163,16 @@ function showGate(msg = "") {
           () => {
             const docs = Net.docs();
             const prefix = `s/${S.store}/sales/`;
-            S.sales = Object.entries(docs)
+            const remoteSales = Object.entries(docs)
               .filter(([path]) => path.startsWith(prefix))
               .map(([, doc]) => doc);
-            console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개`);
+
+            // 로컬 판매(아직 Supabase에 없는 것)를 먼저 보존
+            const remoteIds = new Set(remoteSales.map(s => s.id || s.orderNo));
+            const localOnlySales = S.sales.filter(s => !remoteIds.has(s.id || s.orderNo));
+
+            S.sales = [...localOnlySales, ...remoteSales];
+            console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개 (로컬 ${localOnlySales.length}개)`);
             render();
           },
           () => {
@@ -2200,10 +2206,16 @@ function start() {
           // ✅ Supabase sales 항상 로드 (새 주문 포함)
           // 초기 재고는 Google Sheets 기준 (225개) 유지
           const prefix = `s/${S.store}/sales/`;
-          S.sales = Object.entries(docs)
+          const remoteSales = Object.entries(docs)
             .filter(([path]) => path.startsWith(prefix))
             .map(([, doc]) => doc);
-          console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개, 초기 재고 225개 유지`);
+
+          // 로컬 판매(아직 Supabase에 없는 것)를 먼저 보존
+          const remoteIds = new Set(remoteSales.map(s => s.id || s.orderNo));
+          const localOnlySales = S.sales.filter(s => !remoteIds.has(s.id || s.orderNo));
+
+          S.sales = [...localOnlySales, ...remoteSales];
+          console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개 (로컬 ${localOnlySales.length}개), 초기 재고 225개 유지`);
 
           render();
         },
