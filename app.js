@@ -2164,14 +2164,10 @@ function showGate(msg = "") {
 }
 function start() {
   S.loaded = false;
-  // localStorage PIN이 없으면 로그인 화면 보여주기
-  const savedPin = ls("pos.pin");
-  if (!savedPin) {
-    S.me = null;
-  } else if (!S.me) {
-    S.me = { role: "store", store: "chungcheong" };
-  }
-  render();
+  // 항상 localStorage PIN을 삭제 (새로운 로그인을 위해)
+  ls("pos.pin", null);
+  S.me = null;
+  render(); // showGate() 자동 호출
   // Supabase 연동: 로컬 데이터 로드 후 Supabase에서 판매 데이터 동기화
   let deriveCompleted = false;
   const derivePromise = derive().then(() => {
