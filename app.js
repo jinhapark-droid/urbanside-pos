@@ -431,6 +431,16 @@ function findProduct(raw) {
   const ez = normEz(s);
   if (S.byEz[ez]) return S.byEz[ez];
   if (/^\d{5}$/.test(ez) && S.byEz["S" + ez]) return S.byEz["S" + ez];
+
+  // ✅ EAN-14 코드 → SKU 역변환
+  for (const [sku, ean] of Object.entries(EAN_MAP || {})) {
+    if (ean === s) {
+      const skuEz = normEz(sku);
+      if (S.byEz[skuEz]) return S.byEz[skuEz];
+      if (S.byEz["S" + skuEz]) return S.byEz["S" + skuEz];
+    }
+  }
+
   return S.byCode[s.toUpperCase()] || null;
 }
 
