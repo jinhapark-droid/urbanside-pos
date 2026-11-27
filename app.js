@@ -2176,14 +2176,9 @@ function start() {
       Net.start(
         () => {
           const docs = Net.docs();
-          // Supabase에서 sales만 로드 (receipts는 로컬 Google Sheets 사용)
-          const salesPrefix = `s/${S.store}/sales/`;
-          S.sales = Object.entries(docs)
-            .filter(([path]) => path.startsWith(salesPrefix))
-            .map(([, doc]) => normSale(doc));
-
-          // ✅ Supabase receipts는 로드하지 않음 (로컬 Google Sheets 초기재고 225개 유지)
-          console.log(`✓ Supabase sales ${S.sales.length}개 로드, 초기재고 로컬 유지: ${S.receipts.length}개`);
+          // ✅ 초기화: Supabase sales/receipts 무시, 로컬만 사용
+          // S.sales = []; (로컬 Google Sheets 초기 재고만 유지)
+          console.log(`✓ Supabase 연동됨 - 로컬 초기화 모드: 판매기록 없음, 재고 225개 유지`);
 
           render();
         },
