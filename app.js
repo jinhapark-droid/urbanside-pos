@@ -776,13 +776,30 @@ function openCancel(id, kind) {
           ).slice(0, 8);
 
           if (cachedMatches.length) {
-            searchResults.innerHTML = cachedMatches.map((p, idx) =>
-              `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
+            searchResults.innerHTML = cachedMatches.map((p, idx) => {
+              // prices_full.json에서 정가/할인가 조회
+              let normalPrice = p.normal || 0;
+              let discountPrice = p.discount || 0;
+
+              if (window.cachedPricesFullMap) {
+                const priceInfo = window.cachedPricesFullMap[p.name];
+                if (priceInfo) {
+                  normalPrice = priceInfo.normal || normalPrice;
+                  discountPrice = priceInfo.discount || normalPrice;
+                }
+              }
+
+              if (!normalPrice && !discountPrice) {
+                normalPrice = p.price;
+                discountPrice = p.price;
+              }
+
+              return `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
                 <div style="font-weight:bold;font-size:13px;line-height:1.4">${esc(p.name)}</div>
                 <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)}</div>
-                <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(p.discount || p.price)}</div>
-              </div>`
-            ).join("");
+                <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
+              </div>`;
+            }).join("");
             searchResults.style.display = "block";
           } else {
             searchResults.style.display = "none";
