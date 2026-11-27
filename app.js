@@ -549,34 +549,27 @@ async function commitSale(f) {
   };
   closeModal();
   try {
-    // 로컬 메모리에 판매 기록 저장
+    // Supabase에만 저장 (모든 PC 동기화)
+    await Net.put(P("sales", id), doc);
+    console.log(`✓ Supabase 저장됨 - 주문 ${doc.orderNo}`);
+
+    if (S.exchange) {
+      const o = S.sales.find(x => x.id === S.exchange.id);
+      if (o) await Net.put(P("sales", o.id), { exchangeTo: [...(o.exchangeTo || []), { id, orderNo: doc.orderNo }] }, true);
+    }
+
+    // 로컬 메모리에만 임시 표시 (Supabase에서 받을 때까지)
     const sale = { ...doc, id };
     S.sales.push(sale);
 
-    // LocalStorage에 판매 데이터 저장
-    saveSalesDataToLocalStorage();
-
-    // Google Sheets에 주문 기록 (비동기)
-    fetch('http://127.0.0.1:9876/order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(doc)
-    }).catch(() => {});
-
-    // Supabase에도 시도 (사용 가능하면)
-    try {
-      await Net.put(P("sales", id), doc);
-      if (S.exchange) {
-        const o = S.sales.find(x => x.id === S.exchange.id);
-        if (o) await Net.put(P("sales", o.id), { exchangeTo: [...(o.exchangeTo || []), { id, orderNo: doc.orderNo }] }, true);
-      }
-    } catch (netErr) {
-
-    }
-
     S.cart = []; S.orderExc = null; S.exchange = null; render();
     showReceipt(sale);
-  } catch (e) { writeFail(e); }
+    toast(`✓ 주문 ${doc.orderNo} 저장됨 · 모든 PC에서 동기화됩니다`, "go");
+  } catch (e) {
+    writeFail(e);
+    console.error(`❌ 주문 저장 실패:`, e);
+    toast("⚠️ 주문 저장에 실패했습니다. Supabase 연결을 확인해 주세요.", "bad");
+  }
 }
 function writeFail(e) {
   if (/FORBIDDEN/.test(e && e.message)) toast("이 계정으로는 할 수 없는 작업이에요. 본사에 요청해 주세요.", "bad");
