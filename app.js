@@ -753,6 +753,7 @@ function openCancel(id, kind) {
       }
     };
 
+    let cachedMatches = [];
     setTimeout(() => {
       const scanInput = $("#new-scan");
       const searchResults = $("#search-results");
@@ -761,16 +762,17 @@ function openCancel(id, kind) {
           const q = scanInput.value.trim();
           if (!q) {
             searchResults.style.display = "none";
+            cachedMatches = [];
             return;
           }
-          const matches = S.products.filter(p =>
+          cachedMatches = S.products.filter(p =>
             p.name.toLowerCase().includes(q.toLowerCase()) ||
             p.bc.includes(q) ||
             (p.ez && p.ez.includes(q))
           ).slice(0, 8);
 
-          if (matches.length) {
-            searchResults.innerHTML = matches.map((p, idx) =>
+          if (cachedMatches.length) {
+            searchResults.innerHTML = cachedMatches.map((p, idx) =>
               `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
                 <div style="font-weight:bold;font-size:13px;line-height:1.4">${esc(p.name)}</div>
                 <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)}</div>
@@ -786,9 +788,15 @@ function openCancel(id, kind) {
         scanInput.addEventListener("keydown", e => {
           if (e.key !== "Enter") return;
           e.preventDefault();
-          const selected = $("[data-search-idx]");
-          if (selected) selected.click();
-          else {
+          if (cachedMatches.length > 0) {
+            const p = cachedMatches[0];
+            const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+            scanInput.value = "";
+            searchResults.style.display = "none";
+            cachedMatches = [];
+            updateCalc();
+          } else {
             const q = scanInput.value.trim();
             if (!q) return;
             const p = findProduct(q) || S.byBc[q];
@@ -811,15 +819,11 @@ function openCancel(id, kind) {
           const item = e.target.closest("[data-search-idx]");
           if (item) {
             const idx = +item.dataset.searchIdx;
-            const scanInput = $("#new-scan");
-            const p = S.products.filter(p =>
-              p.name.toLowerCase().includes(scanInput.value.trim().toLowerCase()) ||
-              p.bc.includes(scanInput.value.trim()) ||
-              (p.ez && p.ez.includes(scanInput.value.trim()))
-            )[idx];
+            const p = cachedMatches[idx];
             if (p) {
               const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
               if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+              const scanInput = $("#new-scan");
               scanInput.value = "";
               searchResults.style.display = "none";
               updateCalc();
