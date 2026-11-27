@@ -1,4 +1,10 @@
 "use strict";
+// ✅ 초기화: 오래된 캐시 제거 (prices_full.json inline 로드 위해)
+if (localStorage.getItem("pos.priceMapVersion") !== "v2") {
+  localStorage.clear();
+  localStorage.setItem("pos.priceMapVersion", "v2");
+}
+
 // 어반사이드 팝업 POS — 판매·재고 기록과 본사 공유용. 실결제는 매장(백화점) 단말기에서 한다.
 // 데이터: Google Sheets 기반 (어반사이드_초기재고_225 Sheet)
 // 초기재고는 Google Sheets에서 CSV로 읽고, 판매/재고 기록도 Google Sheets에 저장
@@ -66,19 +72,22 @@ function setConn(ok, text) { $("#conn").innerHTML = `<span class="dot ${ok === t
 
 // ---------- 가격표 로드 (캐싱) ----------
 let cachedPriceMap = null;
+
+// ✅ prices_full.json (Google Sheets K/L 열에서 로드)
+const PRICES_FULL_DATA = {"[26FW] 플랩 90 폴라텍 알파 다이렉트 바라클라바 블랙": {"normal": 59000, "discount": 53000}, "[26FW] 제로인 옥타 하이브리드 캡 블랙": {"normal": 79000, "discount": 71000}, "[26FW] 플랩 90 폴라텍 알파 다이렉트 바라클라바 라이트 그레이": {"normal": 59000, "discount": 53000}, "[26FW] 이지모드 프라임플렉스 써모 팬츠 다크 그레이": {"normal": 209000, "discount": 167200}, "[26FW] 메리노 울 후디 차콜": {"normal": 129000, "discount": 116000}, "[26FW] 이지모드 프라임플렉스 써모 팬츠 차콜": {"normal": 209000, "discount": 167200}, "[26FW] 메리노 울 후디 블랙": {"normal": 129000, "discount": 116000}, "[26FW] 플랩 190 폴라텍 알파 다이렉트 후디 브라운": {"normal": 249000, "discount": 211500}, "[26FW] 플랩 190 폴라텍 알파 다이렉트 후디 차콜": {"normal": 249000, "discount": 211500}, "[26FW] 플랩 90 폴라텍 알파 다이렉트 후디 라이트 그레이": {"normal": 198000, "discount": 168300}, "[26FW] 플랩 90 폴라텍 알파 다이렉트 후디 블랙": {"normal": 198000, "discount": 168300}, "[26FW] 제로인 옥타 에어 롱슬리브 티셔츠 라이트 그레이": {"normal": 149000, "discount": 134000}, "[26FW] 제로인 옥타 에어 롱슬리브 티셔츠 카멜": {"normal": 149000, "discount": 134000}, "[26FW] 플랩 가루이시 후디 블랙": {"normal": 139000, "discount": 120000}, "[26FW] 제로인 옥타 에어 롱슬리브 티셔츠 브라운": {"normal": 149000, "discount": 134000}, "[26FW] 제로인 옥타 에어 롱슬리브 티셔츠 블랙": {"normal": 149000, "discount": 134000}, "[26FW] 제로인 옥타 에어 후디 라이트 그레이": {"normal": 179000, "discount": 179000}, "[26FW] 제로인 옥타 에어 후디 브라운": {"normal": 179000, "discount": 179000}, "[26FW] 제로인 옥타 에어 후디 카멜": {"normal": 179000, "discount": 179000}, "[26FW] 제로인 옥타 에어 후디 블랙": {"normal": 179000, "discount": 179000}, "[26FW] 제로인 옥타 인슐레이션 팬츠 브라운": {"normal": 219000, "discount": 197000}, "[26FW] 제로인 옥타 인슐레이션 팬츠 블랙": {"normal": 219000, "discount": 197000}, "[26FW] 제로인 옥타 하이브리드 쉘 후드 재킷 브라운": {"normal": 289000, "discount": 260000}, "[26FW] 제로인 옥타 에어 타이즈 차콜": {"normal": 119000, "discount": 102000}, "[26FW] 제로인 옥타 하이브리드 쉘 후드 재킷 블랙": {"normal": 289000, "discount": 260000}, "[26FW] 제로인 옥타 에어 베이스 레이어 후디 블랙": {"normal": 139000, "discount": 125000}, "[26FW] 제로인 옥타 에어 베이스 레이어 후디 차콜": {"normal": 139000, "discount": 125000}, "[26FW] 제로인 옥타 에어 타이즈 블랙": {"normal": 119000, "discount": 102000}, "[26FW] 에일러론 900 익스페디션 다운 파카 카키 그레이": {"normal": 679000, "discount": 543200}, "[26FW] 에일러론 900 UL 후드 다운 재킷 브라운": {"normal": 389000, "discount": 350100}, "[26FW] 에일러론 900 익스페디션 다운 파카 블랙": {"normal": 679000, "discount": 543200}, "[26FW] 에일러론 900 UL 후드 다운 재킷 블랙": {"normal": 389000, "discount": 350100}, "[26FW] 에일러론 울트라 1000 SUL 다운 재킷 블랙": {"normal": 399000, "discount": 347200}, "[26FW] 에일러론 울트라 1000 SUL 다운 재킷 실버": {"normal": 399000, "discount": 347200}, "[26FW] 에일러론 울트라 1000 SUL 후드 다운 재킷 블루": {"normal": 599000, "discount": 497200}, "[26FW] 에일러론 울트라 1000 SUL 후드 다운 재킷 블루 블랙": {"normal": 599000, "discount": 497200}, "[26FW] 에일러론 울트라 1000 SUL 후드 다운 재킷 실버": {"normal": 599000, "discount": 497200}, "[26FW] 에일러론 울트라 1000 SUL 후드 다운 재킷 차콜": {"normal": 599000, "discount": 497200}, "[26FW] 에일러론 울트라 1000 SUL 후드 다운 재킷 블랙": {"normal": 599000, "discount": 497200}, "[26FW] 에일러론 울트라 1000 SUL 7D 후드 다운 재킷 베이지": {"normal": 459000, "discount": 413000}, "[26FW] 에일러론 울트라 1000 SUL 7D 후드 다운 재킷 오렌지": {"normal": 459000, "discount": 413000}, "[26FW] 에일러론 울트라 1000 SUL 7D 후드 다운 재킷 블랙": {"normal": 459000, "discount": 413000}, "어반사이드 테고 1.5P (솔리드 이너텐트 포함) (티타늄 블루)": {"normal": 590000, "discount": 540000}};
+
+// ✅ ean_map.json (바코드 → EAN-14)
+const EAN_MAP = {"03981": "8800374201964", "03982": "8800374201971", "04223": "8800374202015", "S03997": "8800374201827", "S03998": "8800374201834", "S04003": "8800374201919", "S04005": "8800374201933", "S04007": "8800374201797", "S04008": "8800374201803", "S04009": "8800374201810", "S04019": "8800374201872", "S04020": "8800374201889", "S04021": "8800374201896", "S04023": "8800374201674", "S04024": "8800374201681", "S04025": "8800374201698", "S04027": "8800374201629", "S04028": "8800374201636", "S04029": "8800374201643", "S04032": "8800374201582", "S04033": "8800374201599", "S04034": "8800374201605", "S04035": "8800374201612", "S04038": "8800374201551", "S04039": "8800374201568", "S04040": "8800374201575", "S04042": "8800374201438", "S04043": "8800374201445", "S04048": "8800374201490", "S04049": "8800374201506", "S04050": "8800374201513", "S04051": "8800374201520", "S04052": "8800374201537", "S04055": "8800374201407", "S04057": "8800374201346", "S04058": "8800374201353", "S04059": "8800374201360", "S04060": "8800374201377", "S04063": "8800374201285", "S04066": "8800374201230", "S04067": "8800374201247", "S04068": "8800374201254", "S04071": "8800374201322", "S04073": "8800374201186", "S04075": "8800374201209", "S04076": "8800374201216", "S04079": "8800374201162", "S04080": "8800374201179", "S04082": "8800374201117", "S04083": "8800374201124", "S04084": "8800374201131", "S04087": "8800374201087", "S04092": "8800374201001", "S04093": "8800374201018", "S04095": "8800374201032", "S04096": "8800374201049", "S04097": "8800374201056", "S04099": "8800374200868", "S04100": "8800374200875", "S04101": "8800374200882", "S04102": "8800374200899", "S04103": "8800374200905", "S04104": "8800374200912", "S04105": "8800374200929", "S04106": "8800374200936", "S04108": "8800374200950", "S04109": "8800374200967", "S04110": "8800374200974", "S04119": "8800374200646", "S04121": "8800374200547", "S04122": "8800374200554", "S04123": "8800374200547", "S04124": "8800374200578", "S04126": "8800374200592", "S04127": "8800374200608", "S04128": "8800374200615", "S04129": "8800374200509", "S04130": "8800374200516", "S04131": "8800374200509", "S04132": "8800374200530", "S04133": "8800374200400", "S04134": "8800374200417", "S04135": "8800374200400", "S04136": "8800374200431", "S04138": "8800374200462", "S04139": "8800374200455", "S04140": "8800374200486", "S04144": "8800374200332", "S04146": "8800374200318", "S04147": "8800374200301", "S04148": "8800374200332", "S04150": "8800374200219", "S04151": "8800374200202", "S04152": "8800374200233", "S04153": "8800374200257", "S04154": "8800374200264", "S04155": "8800374200257", "S04156": "8800374200288", "S04165": "8800374200158", "S04166": "8800374200165", "S04167": "8800374200158", "S04168": "8800374200189", "S04179": "8800374200066", "S04185": "8800374200103", "S04187": "8800374200141", "S04188": "8800374200004", "S04189": "8800374200011", "S04190": "8800374200004", "S04191": "8800374200035", "S04192": "8800374200042", "S04193": "8800374200349", "S04195": "8800374200240", "S04196": "8800374200295", "S04197": "8800374200196", "S04199": "8800374200448"};
+
 async function loadPriceMapFromGoogleSheets() {
   try {
-    // prices_full.json 로드 (정가와 할인가 모두)
-    const response = await fetch('data/prices_full.json?' + Math.random());
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const pricesFull = await response.json();
-    // prices_full.json에서 "discount" 값을 사용해서 프라이스맵 생성
+    // ✅ inline prices_full.json 사용
+    const pricesFull = PRICES_FULL_DATA;
     const priceMap = {};
     for (const [name, prices] of Object.entries(pricesFull)) {
       priceMap[name] = prices.discount || prices.normal || 0;
     }
     cachedPriceMap = priceMap;
-    // 정가·할인가 맵 저장 (renderFinder에서 사용)
     window.cachedPricesFullMap = {};
     for (const [name, prices] of Object.entries(pricesFull)) {
       window.cachedPricesFullMap[name] = {
@@ -86,7 +95,7 @@ async function loadPriceMapFromGoogleSheets() {
         discount: prices.discount || prices.normal || 0
       };
     }
-
+    console.log("✅ 가격표 로드 완료:", Object.keys(pricesFull).length + "개");
     return priceMap;
   } catch (e) {
     console.error("가격표 로드 실패:", e.message);
@@ -1312,26 +1321,23 @@ function renderFinder() {
   const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
   box.innerHTML = hits.map(p => {
     const st = L.stock(p.bc);
-    // prices_full.json 캐시에서 정확한 가격 조회
-    let normalPrice = p.normal || 0;
-    let discountPrice = p.discount || 0;
+    // ✅ PRICES_FULL_DATA에서 직접 가격 조회
+    let normalPrice = p.price || p.normal || 0;
+    let discountPrice = p.price || p.discount || 0;
 
-    if (window.cachedPricesFullMap) {
-      const priceInfo = window.cachedPricesFullMap[p.name];
-      if (priceInfo) {
-        normalPrice = priceInfo.normal || normalPrice;
-        discountPrice = priceInfo.discount || normalPrice;
-      }
+    // prices_full.json (inline) 에서 정확한 가격 조회
+    if (PRICES_FULL_DATA && PRICES_FULL_DATA[p.name]) {
+      const priceInfo = PRICES_FULL_DATA[p.name];
+      normalPrice = priceInfo.normal || normalPrice;
+      discountPrice = priceInfo.discount || normalPrice;
     }
 
-    // fallback: p.price 사용
-    if (!normalPrice && !discountPrice) {
-      normalPrice = p.price;
-      discountPrice = p.price;
-    }
+    const ean = EAN_MAP[p.ez] || '';
+    const eanDisplay = ean ? `<div class="o" style="color: #666; font-size: 0.9em">EAN: <span class="mono">${esc(ean)}</span></div>` : '';
 
     return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
     <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
+    ${eanDisplay}
     <div class="p">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
     <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`;
   }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
