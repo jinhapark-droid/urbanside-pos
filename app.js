@@ -335,9 +335,6 @@ async function derive() {
     await Net.pull(true);
   }
 
-  // LocalStorage에서 판매/입고 데이터 복구
-  loadSalesDataFromLocalStorage();
-
   // 초기재고로부터 products 배열 생성 (각 항목을 product처럼 취급)
   S.products = [];
   const productSet = new Set();
