@@ -2151,11 +2151,10 @@ function start() {
   const derivePromise = derive().then(() => {
     deriveCompleted = true;
 
-    // Net.start()로 Supabase 연동 시작
+    // Supabase 연동 복원
     if (Net.hasPin()) {
       Net.start(
         () => {
-          // onChange 콜백: Supabase에서 데이터가 변경되면 sales 업데이트
           const docs = Net.docs();
           const prefix = `s/${S.store}/sales/`;
           S.sales = Object.entries(docs)
@@ -2164,12 +2163,11 @@ function start() {
           render();
         },
         () => {
-          // onAuth 콜백: 인증 오류 - 로컬 모드로 전환
-          setConn(true, "로컬 모드 (Supabase 연동 불가)");
+          setConn(true, "로컬 모드 (동기화 오류)");
           render();
         }
       );
-      setConn(true, "연결됨 · Supabase 동기화 활성");
+      setConn(true, "✓ 연결됨 (실시간 동기화)");
     } else {
       setConn(true, "로컬 모드");
     }
