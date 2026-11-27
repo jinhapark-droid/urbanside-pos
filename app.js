@@ -292,21 +292,23 @@ const P = (col, id) => `s/${S.store}/${col}/${id}`;
 const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id) || { id, name: id, code: "X" };
 
 async function derive() {
-  // ⚠️ Supabase 연동 비활성화 - 로컬 파일 + LocalStorage 사용
+  // ✅ Supabase 연동 활성화
   const saved = ld("pos.config");
   S.config = saved || {
     stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC", promo: {} }],
     notes: {},
     notice: "",
-    staff: [
-      { name: "본사", pin: "12345678", role: "hq", store: "hq" },
-      { name: "노금정", pin: "87654321", role: "hq", store: "hq" }
-    ]
+    staff: []
   };
   S.store = "chungcheong";
   ls("pos.store", S.store);
   if (!saved) ls("pos.config", S.config);
   S.sales = []; S.receipts = []; S.requests = [];
+
+  // Supabase 동기화 시작
+  if (Net.hasPin()) {
+    await Net.pull(true);
+  }
 
   // 로컬 파일에서 초기재고 로드
   const initStock = await loadInitStockFromGoogleSheets();

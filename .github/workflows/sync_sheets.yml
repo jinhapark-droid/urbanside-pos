@@ -1,0 +1,107 @@
+name: 실시간 주문 동기화
+
+on:
+  schedule:
+    - cron: '*/1 * * * *'  # 1분마다 실행
+  workflow_dispatch:  # 수동 트리거
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Python 설정
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: gspread 설치
+        run: pip install gspread
+
+      - name: Google Sheets 동기화
+        env:
+          GSPREAD_CLIENT_JSON: ${{ secrets.GSPREAD_CLIENT_JSON }}
+          GSPREAD_AUTH_JSON: ${{ secrets.GSPREAD_AUTH_JSON }}
+        run: |
+          cat > /tmp/client.json << 'EOF'
+          ${{ secrets.GSPREAD_CLIENT_JSON }}
+          EOF
+
+          cat > /tmp/auth.json << 'EOF'
+          ${{ secrets.GSPREAD_AUTH_JSON }}
+          EOF
+
+          python << 'PYTHON_EOF'
+          import json
+          import gspread
+          from datetime import datetime
+
+          gc = gspread.oauth(
+              scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'],
+              credentials_filename='/tmp/client.json',
+              authorized_user_filename='/tmp/auth.json'
+          )
+
+          SHEET_ID = "1n534dUsli2uIWiCcSNG7v8Jd-s-95QTZUAHN4JGnyHU"
+
+          try:
+              sheet = gc.open_by_key(SHEET_ID)
+              ws = sheet.get_worksheet(0)
+
+              # data/orders.json에서 주문 읽기
+              try:
+                  with open('data/orders.json', 'r', encoding='utf-8') as f:
+                      data = json.load(f)
+                  sales = data.get('sales', [])
+              except:
+                  sales = []
+
+              # 기존 주문 확인
+              existing = set()
+              try:
+                  rows = ws.get_all_records()
+                  for row in rows:
+                      if row.get("주문번호"):
+                          existing.add(row["주문번호"])
+              except:
+                  pass
+
+              # 새 주문 추가
+              added = 0
+              for sale in sales:
+                  order_no = sale.get("orderNo", "")
+                  if order_no in existing:
+                      continue
+
+                  status = "교환" if "_EX" in order_no else "판매"
+
+                  try:
+                      dt = datetime.fromtimestamp(sale.get("ts", 0) / 1000)
+                      date = dt.strftime("%Y-%m-%d")
+                      time_str = dt.strftime("%H:%M:%S")
+                  except:
+                      date = ""
+                      time_str = ""
+
+                  items = sale.get("items", [])
+                  name = items[0].get("name", "—") if items else "—"
+                  size = items[0].get("size", "—") if items else "—"
+                  color = items[0].get("color", "—") if items else "—"
+                  qty = sum(item.get("qty", 0) for item in items)
+                  pin = sale.get("pin", "—")
+
+                  row_data = [
+                      order_no, date, time_str, name, size, color, qty,
+                      sale.get("total", 0), pin, status, sale.get("memo", "")
+                  ]
+
+                  ws.append_row(row_data)
+                  added += 1
+
+              print(f"✅ {added}개 주문 추가됨")
+
+          except Exception as e:
+              print(f"❌ 오류: {e}")
+          PYTHON_EOF
