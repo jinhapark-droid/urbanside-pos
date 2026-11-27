@@ -2143,7 +2143,7 @@ setInterval(() => { const d = new Date(); $("#clock").textContent = `${d.getMont
 
 // ---------- 로그인 (직원 PIN) ----------
 function showGate(msg = "") {
-  S.me = null; render();
+  S.me = null;
   let g = $("#gate");
   if (!g) {
     g = document.createElement("div"); g.id = "gate";
