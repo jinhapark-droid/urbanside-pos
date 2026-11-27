@@ -701,7 +701,7 @@ function openCancel(id, kind) {
           <label class="wide" style="display:block;margin-bottom:8px">바코드 스캔 또는 상품명<input class="input" id="new-scan" placeholder="바코드를 찍거나 상품명 검색" inputmode="numeric" data-autofocus style="display:block;width:100%;margin-top:4px"></label>
           <div id="search-results" style="position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--border);border:1px solid var(--line);border-radius:4px;max-height:240px;overflow-y:auto;z-index:1000;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.3)"></div>
         </div>
-        <div id="new-items-box" class="note" style="min-height:40px;padding:8px;background:var(--border);border-radius:4px">선택한 상품이 여기에 나타나요</div>
+        <div id="new-items-box" class="note" style="min-height:40px;padding:8px;background:var(--border);border-radius:4px;width:100%;box-sizing:border-box;overflow-y:auto;max-height:200px">선택한 상품이 여기에 나타나요</div>
       </div>
       <div class="box" style="background:var(--border);padding:12px;border-radius:4px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
