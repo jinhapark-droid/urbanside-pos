@@ -533,6 +533,13 @@ async function commitSale(f) {
     // LocalStorage에 판매 데이터 저장
     saveSalesDataToLocalStorage();
 
+    // Google Sheets에 주문 기록 (비동기)
+    fetch('http://127.0.0.1:9876/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(doc)
+    }).catch(() => {});
+
     // Supabase에도 시도 (사용 가능하면)
     try {
       await Net.put(P("sales", id), doc);
