@@ -295,7 +295,7 @@ async function derive() {
   // ⚠️ Supabase 연동 비활성화 - 로컬 파일 + LocalStorage 사용
   const saved = ld("pos.config");
   S.config = saved || {
-    stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC", promo: { on: true, threshold: 500000, rate: 0.05, basis: "list", mode: "seq" } }],
+    stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC", promo: { on: false, threshold: 500000, rate: 0.05, basis: "list", mode: "seq" } }],
     notes: {},
     notice: "",
     staff: [
