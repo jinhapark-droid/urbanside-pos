@@ -360,7 +360,16 @@ async function derive() {
     S.byCode[String(p.code).toUpperCase()] = p;
   }
 
-  // Supabase 데이터는 로드하지 않음 (로컬 초기재고만 사용)
+  // Supabase에서 모든 판매 데이터 로드 (PC별 주문 조회 연동)
+  try {
+    const allSales = await Net.get(P("sales"), true);
+    if (allSales && Array.isArray(allSales)) {
+      S.sales = allSales.map(normSale);
+    }
+  } catch (e) {
+    // Supabase 로드 실패 시 로컬 데이터만 사용
+  }
+
   S.loaded = true;
 }
 // 이전 버전(아난티 초기) 판매 기록도 같은 모양으로 맞춘다
