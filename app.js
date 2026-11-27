@@ -2155,7 +2155,14 @@ function showGate(msg = "") {
       e.preventDefault();
       const p = $("#gate-pin").value.trim(); if (!p) return;
       const btn = g.querySelector("button"); btn.disabled = true; btn.textContent = "확인 중…";
-      try { S.me = await Net.login(p); g.remove(); start(); }
+      try {
+        S.me = await Net.login(p);
+        g.remove();
+        S.loaded = true;
+        render();
+        // derive() 실행하되, 로그인 후이므로 start()는 호출하지 않음
+        derive().catch(err => console.error("데이터 로드 오류:", err));
+      }
       catch (err) { btn.disabled = false; btn.textContent = "시작하기"; g.querySelector(".err").textContent = /\bPIN\b/.test(err.message) ? "PIN이 맞지 않거나 꺼진 계정이에요." : "서버에 연결하지 못했어요. 인터넷을 확인해 주세요."; }
     });
   }
