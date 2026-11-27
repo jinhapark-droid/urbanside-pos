@@ -360,17 +360,9 @@ async function derive() {
     S.byCode[String(p.code).toUpperCase()] = p;
   }
 
-  // Supabase에서 모든 판매 데이터 로드 (PC별 주문 조회 연동)
-  try {
-    const allSales = await Net.get(P("sales"), true);
-    if (allSales && Array.isArray(allSales)) {
-      S.sales = allSales.map(normSale);
-    }
-  } catch (e) {
-    // Supabase 로드 실패 시 로컬 데이터만 사용
-  }
-
   S.loaded = true;
+
+  // Supabase 데이터 로드는 Net.start() 후에 처리 (main 함수에서 실행)
 }
 // 이전 버전(아난티 초기) 판매 기록도 같은 모양으로 맞춘다
 function normSale(s) {
@@ -2097,15 +2089,32 @@ function start() {
   // S.me가 이미 설정되어 있으면 유지, 아니면 기본값 사용
   if (!S.me) S.me = { role: "store", store: "chungcheong" };
   render();
-  // Supabase 연동 비활성화 - 로컬 데이터만 사용
+  // Supabase 연동: 로컬 데이터 로드 후 Supabase에서 판매 데이터 동기화
   let deriveCompleted = false;
   const derivePromise = derive().then(() => {
     deriveCompleted = true;
 
-    setConn(true, "로컬 모드");
+    // Net.start()로 Supabase 연동 시작
+    Net.start(
+      () => {
+        // onChange 콜백: Supabase에서 데이터가 변경되면 sales 업데이트
+        const docs = Net.docs();
+        const prefix = `s/${S.store}/sales/`;
+        S.sales = Object.entries(docs)
+          .filter(([path]) => path.startsWith(prefix))
+          .map(([, doc]) => normSale(doc));
+        render();
+      },
+      () => {
+        // onAuth 콜백: 인증 오류
+        showGate("PIN이 만료되었어요.");
+      }
+    );
+
+    setConn(true, "연결됨 · Supabase 동기화 활성");
     render();
   });
-  // 타임아웃: 20초 후에도 derive가 완료되지 않으면 강제로 render
+  // 타임아웃: 50초 후에도 derive가 완료되지 않으면 강제로 render
   setTimeout(() => {
     if (!deriveCompleted) {
       S.loaded = true;
