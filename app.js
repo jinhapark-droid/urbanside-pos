@@ -792,33 +792,45 @@ function openCancel(id, kind) {
       }
     }, 50);
 
-    document.addEventListener("click", e => {
-      if (e.target.closest("[data-search-idx]")) {
-        const idx = +e.target.closest("[data-search-idx]").dataset.searchIdx;
-        const p = S.products.filter(p =>
-          p.name.toLowerCase().includes($("#new-scan").value.trim().toLowerCase()) ||
-          p.bc.includes($("#new-scan").value.trim()) ||
-          (p.ez && p.ez.includes($("#new-scan").value.trim()))
-        )[idx];
-        if (p) {
-          const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
-          $("#new-scan").value = "";
-          $("#search-results").style.display = "none";
-          updateCalc();
-        }
+    // 모달 내의 search result 클릭
+    setTimeout(() => {
+      const searchResults = $("#search-results");
+      if (searchResults) {
+        searchResults.addEventListener("click", e => {
+          const item = e.target.closest("[data-search-idx]");
+          if (item) {
+            const idx = +item.dataset.searchIdx;
+            const scanInput = $("#new-scan");
+            const p = S.products.filter(p =>
+              p.name.toLowerCase().includes(scanInput.value.trim().toLowerCase()) ||
+              p.bc.includes(scanInput.value.trim()) ||
+              (p.ez && p.ez.includes(scanInput.value.trim()))
+            )[idx];
+            if (p) {
+              const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
+              if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
+              scanInput.value = "";
+              searchResults.style.display = "none";
+              updateCalc();
+            }
+          }
+        });
       }
-    });
+    }, 50);
 
-    document.addEventListener("click", e => {
-      if (e.target.dataset.act === "new-item-del") {
-        const idx = +e.target.dataset.idx;
-        newItems.splice(idx, 1);
-        updateCalc();
-      } else if (e.target.dataset.act === "cancel-do" && e.target.dataset.stage === "2") {
-        S.exchangeStage2Items = newItems;
+    // 모달 내의 delete 버튼 클릭
+    setTimeout(() => {
+      const newItemsBox = $("#new-items-box");
+      if (newItemsBox) {
+        newItemsBox.addEventListener("click", e => {
+          if (e.target.dataset.act === "new-item-del") {
+            const idx = +e.target.dataset.idx;
+            newItems.splice(idx, 1);
+            updateCalc();
+          }
+        });
       }
-    });
+    }, 50);
     updateCalc();
   };
 
