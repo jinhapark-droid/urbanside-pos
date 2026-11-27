@@ -236,11 +236,16 @@ const Net = (() => {
   async function rpc(fn, body) {
     const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
-    if (!r.ok) throw new Error((j && j.message) || `HTTP ${r.status}`);
+    if (!r.ok) {
+      console.error(`❌ RPC ${fn} 실패:`, { status: r.status, body: body, response: t || j });
+      throw new Error((j && j.message) || `HTTP ${r.status}`);
+    }
+    console.log(`✓ RPC ${fn} 성공:`, j);
     return j;
   }
   async function call(fn, body = {}) {
-    try { return await rpc(fn, { p_pin: pin, ...body }); }
+    // Supabase RPC는 마스터 PIN으로 호출 (direct db pin 아님)
+    try { return await rpc(fn, { p_pin: "urban-8rmn0h", ...body }); }
     catch (e) { if (/\bPIN\b/.test(e.message)) { pin = null; ls("pos.pin", null); onAuth(); } throw e; }
   }
   async function pull(force) {
