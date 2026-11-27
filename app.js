@@ -1009,13 +1009,17 @@ async function doCancel(id, kind) {
       if (S.exchangeStage2Items && S.exchangeStage2Items.length) {
         S.exchangeStage2Items.forEach(it => {
           const p = S.byBc[it.bc];
-          if (p) S.cart.push({ p, qty: it.qty, type: "pickup", via: "search" });
+          if (p) S.cart.push({ bc: it.bc, qty: it.qty, type: "pickup", via: "search", exc: null });
         });
         S.exchangeStage2Items = null;
       }
+      render();
       goTab("sell");
       toast("원상품을 취소했어요. 새 상품이 준비되었습니다. 판매 확정해 주세요.", "go");
-    } else toast(`취소·환불을 기록했어요 · 환불 ${won(entry.refund)}원`, "go");
+    } else {
+      render();
+      toast(`취소·환불을 기록했어요 · 환절 ${won(entry.refund)}원`, "go");
+    }
   } catch (e) { writeFail(e); }
 }
 
