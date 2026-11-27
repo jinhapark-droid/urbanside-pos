@@ -996,14 +996,15 @@ async function doCancel(id, kind) {
     if (idx >= 0) {
       S.sales[idx].items = items;
       S.sales[idx].cancels = [...s.cancels, entry];
-      S.sales[idx].status = all ? "canceled" : "partial";
+      // normSale()을 호출하여 state 재계산
+      normSale(S.sales[idx]);
       // LocalStorage에 판매 데이터 저장
       saveSalesDataToLocalStorage();
     }
 
     // Supabase에도 시도 (사용 가능하면)
     try {
-      await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry], status: all ? "canceled" : "partial" }, true);
+      await Net.put(P("sales", id), { items, cancels: [...s.cancels, entry] }, true);
     } catch (netErr) {
 
     }
