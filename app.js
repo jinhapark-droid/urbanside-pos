@@ -2095,23 +2095,27 @@ function start() {
     deriveCompleted = true;
 
     // Net.start()로 Supabase 연동 시작
-    Net.start(
-      () => {
-        // onChange 콜백: Supabase에서 데이터가 변경되면 sales 업데이트
-        const docs = Net.docs();
-        const prefix = `s/${S.store}/sales/`;
-        S.sales = Object.entries(docs)
-          .filter(([path]) => path.startsWith(prefix))
-          .map(([, doc]) => normSale(doc));
-        render();
-      },
-      () => {
-        // onAuth 콜백: 인증 오류
-        showGate("PIN이 만료되었어요.");
-      }
-    );
-
-    setConn(true, "연결됨 · Supabase 동기화 활성");
+    if (Net.hasPin()) {
+      Net.start(
+        () => {
+          // onChange 콜백: Supabase에서 데이터가 변경되면 sales 업데이트
+          const docs = Net.docs();
+          const prefix = `s/${S.store}/sales/`;
+          S.sales = Object.entries(docs)
+            .filter(([path]) => path.startsWith(prefix))
+            .map(([, doc]) => normSale(doc));
+          render();
+        },
+        () => {
+          // onAuth 콜백: 인증 오류 - 로컬 모드로 전환
+          setConn(true, "로컬 모드 (Supabase 연동 불가)");
+          render();
+        }
+      );
+      setConn(true, "연결됨 · Supabase 동기화 활성");
+    } else {
+      setConn(true, "로컬 모드");
+    }
     render();
   });
   // 타임아웃: 50초 후에도 derive가 완료되지 않으면 강제로 render
@@ -2128,14 +2132,14 @@ $("#who").style.cursor = "pointer";
 (() => {
   const t = location.hash.slice(1); if (TABS.some(x => x[0] === t)) S.tab = t;
   // 저장된 PIN으로 복구, 없으면 로그인 화면 표시
-  const savedPin = ls("pos.mePin");
+  const savedPin = ls("pos.pin");
   if (savedPin) {
     derive().then(() => {
       const staff = S.config.staff.find(s => s.pin === savedPin);
       if (staff) {
-        S.me = staff; render();
+        S.me = staff; start();
       } else {
-        ls("pos.mePin", null);
+        ls("pos.pin", null);
         showGate();
       }
     });
