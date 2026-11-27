@@ -308,7 +308,8 @@ async function derive() {
     notice: "",
     staff: [
       { name: "본사", pin: "12345678", role: "hq", store: "hq" },
-      { name: "노금정", pin: "87654321", role: "hq", store: "hq" }
+      { name: "노금정", pin: "87654321", role: "hq", store: "hq" },
+      { name: "충청매장", pin: "91671564", role: "staff", store: "chungcheong" }
     ]
   };
   S.store = "chungcheong";
