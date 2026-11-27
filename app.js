@@ -1251,9 +1251,24 @@ function renderFinder() {
   const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
   box.innerHTML = hits.map(p => {
     const st = L.stock(p.bc);
-    // 정가와 할인가
-    const normalPrice = p.normal || p.price;
-    const discountPrice = p.discount || p.price;
+    // prices_full.json 캐시에서 정확한 가격 조회
+    let normalPrice = p.normal || 0;
+    let discountPrice = p.discount || 0;
+
+    if (window.cachedPricesFullMap) {
+      const priceInfo = window.cachedPricesFullMap[p.name];
+      if (priceInfo) {
+        normalPrice = priceInfo.normal || normalPrice;
+        discountPrice = priceInfo.discount || normalPrice;
+      }
+    }
+
+    // fallback: p.price 사용
+    if (!normalPrice && !discountPrice) {
+      normalPrice = p.price;
+      discountPrice = p.price;
+    }
+
     return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
     <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
     <div class="p">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
