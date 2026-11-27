@@ -2163,8 +2163,8 @@ function showGate(msg = "") {
   setTimeout(() => $("#gate-pin") && $("#gate-pin").focus(), 0);
 }
 function start() {
-  // 항상 localStorage PIN을 삭제 (새로운 로그인을 위해)
-  ls("pos.pin", null);
+  // Net 객체의 PIN도 초기화 (로그아웃)
+  Net.logout();
   S.me = null;
   render(); // showGate() 자동 호출 (S.loaded 설정 전)
 
