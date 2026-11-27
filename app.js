@@ -2164,8 +2164,9 @@ function showGate(msg = "") {
 }
 function start() {
   S.loaded = false;
-  // PIN이 없으면 로그인 화면 보여주기
-  if (!Net.hasPin()) {
+  // localStorage PIN이 없으면 로그인 화면 보여주기
+  const savedPin = ls("pos.pin");
+  if (!savedPin) {
     S.me = null;
   } else if (!S.me) {
     S.me = { role: "store", store: "chungcheong" };
