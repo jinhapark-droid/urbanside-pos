@@ -249,7 +249,10 @@ const Net = (() => {
       const r = await call("pos_load", { p_ver: force ? 0 : ver });
       setConn(true, "연결됨 · 6초마다 자동 갱신");
       if (r) { ver = r.ver; docs = {}; for (const [p, d] of r.docs) docs[p] = d; if (r.me) S.me = r.me; onChange(); }
-    } catch (e) { if (!/\bPIN\b/.test(e.message)) setConn(false, "연결 끊김 · 자동으로 다시 시도해요"); }
+    } catch (e) {
+      console.error("Supabase pull 실패:", e);
+      if (!/\bPIN\b/.test(e.message)) setConn(false, "연결 끊김 · 자동으로 다시 시도해요");
+    }
     finally { busy = false; }
   }
   return {
@@ -2163,7 +2166,7 @@ function start() {
   const derivePromise = derive().then(() => {
     deriveCompleted = true;
 
-    // Supabase 연동 복원
+    // Supabase 연동 시도
     if (Net.hasPin()) {
       Net.start(
         () => {
@@ -2175,13 +2178,13 @@ function start() {
           render();
         },
         () => {
-          setConn(true, "로컬 모드 (동기화 오류)");
+          setConn(false, "로컬 모드 (동기화 오류)");
           render();
         }
       );
-      setConn(true, "✓ 연결됨 (실시간 동기화)");
+      setConn(null, "연결 중 · Supabase 동기화");
     } else {
-      setConn(true, "로컬 모드");
+      setConn(false, "로컬 모드");
     }
     render();
   });
