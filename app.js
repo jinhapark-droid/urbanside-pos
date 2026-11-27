@@ -184,10 +184,19 @@ async function loadInitStockFromGoogleSheets() {
         return receipts;
       }
     } catch (localErr) {
+      console.error("❌ stock.csv 로드 실패:", localErr);
     }
 
-    // Google Sheets 로드 비활성화 - 로컬 파일만 사용
-    return [];
+    // 로컬 파일 로드 실패 시 테스트용 더미 데이터 반환
+    return [{
+      kind: "init",
+      label: "로컬_초기재고",
+      ts: new Date().toISOString(),
+      by: "system",
+      items: [
+        { bc: "TEST001", name: "테스트 상품", size: "F", color: "Free", qty: 225, unit: 100000, normal: 100000, discount: 100000 }
+      ]
+    }];
   } catch (e) {
     console.error("초기재고 로드 실패:", e);
     return [];
@@ -317,14 +326,14 @@ async function derive() {
   if (!saved) ls("pos.config", S.config);
   S.sales = []; S.receipts = []; S.requests = [];
 
-  // Supabase 동기화 시작
+  // 로컬 파일에서 초기재고 로드 (Google Sheets에서만)
+  const initStock = await loadInitStockFromGoogleSheets();
+  S.receipts = initStock;
+
+  // Supabase 동기화 시작 (초기재고 이후의 판매·입고만 로드)
   if (Net.hasPin()) {
     await Net.pull(true);
   }
-
-  // 로컬 파일에서 초기재고 로드
-  const initStock = await loadInitStockFromGoogleSheets();
-  S.receipts.push(...initStock);
 
   // LocalStorage에서 판매/입고 데이터 복구
   loadSalesDataFromLocalStorage();
@@ -2158,10 +2167,21 @@ function showGate(msg = "") {
       try {
         S.me = await Net.login(p);
         g.remove();
-        S.loaded = true;
         render();
-        // derive() 실행하되, 로그인 후이므로 start()는 호출하지 않음
-        derive().catch(err => console.error("데이터 로드 오류:", err));
+        // Supabase 동기화 (derive()는 프로그램 시작 시 이미 호출됨)
+        Net.start(
+          () => {
+            const docs = Net.docs();
+            S.sales = docs.sales || [];
+            console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개`);
+            render();
+          },
+          () => {
+            setConn(false, "로컬 모드 (동기화 오류)");
+            render();
+          }
+        );
+        setConn(null, "연결 중 · Supabase 동기화");
       }
       catch (err) { btn.disabled = false; btn.textContent = "시작하기"; g.querySelector(".err").textContent = /\bPIN\b/.test(err.message) ? "PIN이 맞지 않거나 꺼진 계정이에요." : "서버에 연결하지 못했어요. 인터넷을 확인해 주세요."; }
     });
