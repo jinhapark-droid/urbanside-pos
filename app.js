@@ -2176,22 +2176,14 @@ function start() {
       Net.start(
         () => {
           const docs = Net.docs();
-          // Supabase에서 sales + receipts 모두 로드
+          // Supabase에서 sales만 로드 (receipts는 로컬 Google Sheets 사용)
           const salesPrefix = `s/${S.store}/sales/`;
           S.sales = Object.entries(docs)
             .filter(([path]) => path.startsWith(salesPrefix))
             .map(([, doc]) => normSale(doc));
 
-          // Supabase에서 receipts 로드 (초기재고 + 추가입고)
-          const receiptsPrefix = `s/${S.store}/receipts/`;
-          const sbReceipts = Object.entries(docs)
-            .filter(([path]) => path.startsWith(receiptsPrefix))
-            .map(([, doc]) => doc);
-
-          if (sbReceipts.length > 0) {
-            S.receipts = [...sbReceipts];
-            console.log(`✓ Supabase receipts: ${S.receipts.length}개`);
-          }
+          // ✅ Supabase receipts는 로드하지 않음 (로컬 Google Sheets 초기재고 225개 유지)
+          console.log(`✓ Supabase sales ${S.sales.length}개 로드, 초기재고 로컬 유지: ${S.receipts.length}개`);
 
           render();
         },
