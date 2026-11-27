@@ -515,7 +515,7 @@ async function commitSale(f) {
   const id = "S" + dayKey(now).replace(/-/g, "") + "-" + hm(now).replace(":", "") + "-" + Math.random().toString(36).slice(2, 6);
   const orderNo = S.exchange ? S.exchange.orderNo + "_EX" : nextOrderNo(now);
   const doc = {
-    ts: now, day: dayKey(now), store: S.store, orderNo, rt: token(20), by: S.me.name, items,
+    ts: now, day: dayKey(now), store: S.store, orderNo, rt: token(20), by: S.me.name, pin: S.me.pin, items,
     qty: pr.qty, gross: pr.gross, baseDisc: pr.baseDisc, promoDisc: pr.promoTotal, promoInfo: pr.hit ? { ...pr.promo } : null,
     excDisc: pr.excTotal, orderExc: S.orderExc ? { ...S.orderExc, amount: pr.orderExcAmt } : null, excWarn: pr.warn,
     total: pr.total, paid: f.paid, memo: f.memo, custName: f.name, custPhone: f.phone, hyundaiReceiptNo: f.hyundaiReceiptNo,
