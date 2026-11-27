@@ -292,13 +292,16 @@ const P = (col, id) => `s/${S.store}/${col}/${id}`;
 const storeCfg = (id = S.store) => (S.config.stores || []).find(s => s.id === id) || { id, name: id, code: "X" };
 
 async function derive() {
-  // ✅ Supabase 연동 활성화
+  // ✅ Supabase 연동 활성화 + 로컬 직원 데이터
   const saved = ld("pos.config");
   S.config = saved || {
     stores: [{ id: "chungcheong", name: "더현대 충청", code: "HD_CC", promo: {} }],
     notes: {},
     notice: "",
-    staff: []
+    staff: [
+      { name: "본사", pin: "12345678", role: "hq", store: "hq" },
+      { name: "노금정", pin: "87654321", role: "hq", store: "hq" }
+    ]
   };
   S.store = "chungcheong";
   ls("pos.store", S.store);
