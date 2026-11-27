@@ -609,7 +609,7 @@ function findOrders(q) {
     || (d.length >= 4 && (digits(s.custPhone).includes(d) || (s.ship && digits(s.ship.phone).includes(d)))));
 }
 const daysSince = ts => Math.floor((new Date(dayKey(Date.now())) - new Date(dayKey(ts))) / 86400000);
-const stateChip = s => s.state === "canceled" ? `<span class="chip bad">취소</span>` : s.state === "partial" ? `<span class="chip warn">부분 취소</span>` : `<span class="chip go">판매</span>`;
+const stateChip = s => s.refunded ? `<span class="chip bad">환불</span>` : s.state === "canceled" ? `<span class="chip bad">취소</span>` : s.state === "partial" ? `<span class="chip warn">부분 취소</span>` : `<span class="chip go">판매</span>`;
 const typeChips = s => [...new Set(s.items.map(i => i.type))].map(t => `<span class="chip t-${t}">${TYPES[t]}</span>`).join(" ");
 function saleSummary(s) {
   const f = s.items[0] || {};
