@@ -376,25 +376,12 @@ async function derive() {
     }
   }
 
-  S.byBc = {}; S.byEz = {}; S.byCode = {}; S.byEan = {};
+  S.byBc = {}; S.byEz = {}; S.byCode = {};
   for (const p of S.products) {
     S.byBc[p.bc] = p;
     S.byEz[normEz(p.ez)] = p;
     S.byCode[String(p.code).toUpperCase()] = p;
-    if (p.ean) S.byEan[p.ean] = p;
   }
-
-  // EAN-14 바코드 매핑 (inline) - 짧은바코드 -> EAN
-  const shortToEan = {"03981":"8800374201964","03982":"8800374201971","04223":"8800374202015","S03997":"8800374201827","S03998":"8800374201834","S04003":"8800374201919","S04005":"8800374201933","S04007":"8800374201797","S04008":"8800374201803","S04009":"8800374201810","S04019":"8800374201872","S04020":"8800374201889","S04021":"8800374201896","S04023":"8800374201674","S04024":"8800374201681","S04025":"8800374201698","S04027":"8800374201629","S04028":"8800374201636","S04029":"8800374201643","S04032":"8800374201582","S04033":"8800374201599","S04034":"8800374201605","S04035":"8800374201612","S04038":"8800374201551","S04039":"8800374201568","S04040":"8800374201575","S04042":"8800374201438","S04043":"8800374201445","S04048":"8800374201490","S04049":"8800374201506","S04050":"8800374201513","S04051":"8800374201520","S04052":"8800374201537","S04055":"8800374201407","S04057":"8800374201346","S04058":"8800374201353","S04059":"8800374201360","S04060":"8800374201377","S04063":"8800374201285","S04066":"8800374201230","S04067":"8800374201247","S04068":"8800374201254","S04071":"8800374201322","S04073":"8800374201186","S04075":"8800374201209","S04076":"8800374201216","S04079":"8800374201162","S04080":"8800374201179","S04082":"8800374201117","S04083":"8800374201124","S04084":"8800374201131","S04087":"8800374201087","S04092":"8800374201001","S04093":"8800374201018","S04095":"8800374201032","S04096":"8800374201049","S04097":"8800374201056","S04099":"8800374200868","S04100":"8800374200875","S04101":"8800374200882","S04102":"8800374200899","S04103":"8800374200905","S04104":"8800374200912","S04105":"8800374200929","S04106":"8800374200936","S04108":"8800374200950","S04109":"8800374200967","S04110":"8800374200974","S04119":"8800374200646","S04121":"8800374200547","S04122":"8800374200554","S04123":"8800374200547","S04124":"8800374200578","S04126":"8800374200592","S04127":"8800374200608","S04128":"8800374200615","S04129":"8800374200509","S04130":"8800374200516","S04131":"8800374200509","S04132":"8800374200530","S04133":"8800374200400","S04134":"8800374200417","S04135":"8800374200400","S04136":"8800374200431","S04138":"8800374200462","S04139":"8800374200455","S04140":"8800374200486","S04144":"8800374200332","S04146":"8800374200318","S04147":"8800374200301","S04148":"8800374200332","S04150":"8800374200219","S04151":"8800374200202","S04152":"8800374200233","S04153":"8800374200257","S04154":"8800374200264","S04155":"8800374200257","S04156":"8800374200288","S04165":"8800374200158","S04166":"8800374200165","S04167":"8800374200158","S04168":"8800374200189","S04179":"8800374200066","S04185":"8800374200103","S04187":"8800374200141","S04188":"8800374200004","S04189":"8800374200011","S04190":"8800374200004","S04191":"8800374200035","S04192":"8800374200042","S04193":"8800374200349","S04195":"8800374200240","S04196":"8800374200295","S04197":"8800374200196","S04199":"8800374200448"};
-  let matched = 0;
-  for (const p of S.products) {
-    if (shortToEan[p.bc]) {
-      p.ean = shortToEan[p.bc];
-      S.byEan[p.ean] = p;
-      matched++;
-    }
-  }
-  console.log(`✅ EAN 매칭 완료: ${matched}개`);
 
   S.loaded = true;
 
@@ -432,7 +419,6 @@ function findProduct(raw) {
   const s = String(raw ?? "").trim();
   if (!s) return null;
   if (S.byBc[s]) return S.byBc[s];
-  if (S.byEan[s]) return S.byEan[s];
   const ez = normEz(s);
   if (S.byEz[ez]) return S.byEz[ez];
   if (/^\d{5}$/.test(ez) && S.byEz["S" + ez]) return S.byEz["S" + ez];
@@ -806,7 +792,6 @@ function openCancel(id, kind) {
           cachedMatches = S.products.filter(p =>
             p.name.toLowerCase().includes(q.toLowerCase()) ||
             p.bc.includes(q) ||
-            (p.ean && p.ean.includes(q)) ||
             (p.ez && p.ez.includes(q))
           ).slice(0, 8);
 
@@ -831,7 +816,7 @@ function openCancel(id, kind) {
 
               return `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
                 <div style="font-weight:bold;font-size:13px;line-height:1.4">${esc(p.name)}</div>
-                <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)} | ${p.ean ? p.ean : '(EAN 없음)'}</div>
+                <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)}</div>
                 <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
               </div>`;
             }).join("");
@@ -1319,12 +1304,12 @@ function closeModal() { $("#modal-root").innerHTML = ""; }
 function openFinder() {
   openModal("상품 찾기", `<input class="input" id="finder-q" style="width:100%" placeholder="상품명, 컬러, 사이즈, 코드로 검색 (예: 후디 블랙 L)" data-autofocus>
     <div class="finder-grid" id="finder-list" style="margin-top:12px"></div>`, `<button class="btn" data-act="close">닫기</button>`);
-  setTimeout(() => renderFinder(), 500);
+  renderFinder();
 }
 function renderFinder() {
   const box = $("#finder-list"); if (!box) return;
   const L = ledger(), q = ($("#finder-q").value || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ean || p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
+  const hits = S.products.filter(p => { const h = `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc} ${p.code}`.toLowerCase(); return q.every(w => h.includes(w)); }).slice(0, 80);
   box.innerHTML = hits.map(p => {
     const st = L.stock(p.bc);
     // prices_full.json 캐시에서 정확한 가격 조회
@@ -1346,7 +1331,7 @@ function renderFinder() {
     }
 
     return `<button class="card ${st <= 0 ? "zero" : ""}" data-act="finder-pick" data-bc="${p.bc}">
-    <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ean ? p.ean : `(${p.bc)}`)}</span></div>
+    <div class="t">${esc(p.name)}</div><div class="o">${esc(optLabel(p))} · <span class="mono">${esc(p.ez)}</span></div>
     <div class="p">${won(discountPrice)}원 정가: ${won(normalPrice)}원</div>
     <div class="o">현장 재고 <b class="num">${st}</b>${st <= 0 ? " · 택배로 담겨요" : ""}</div></button>`;
   }).join("") || `<div class="empty"><strong>검색 결과가 없어요</strong>다른 단어로 찾아 보세요.</div>`;
@@ -1509,7 +1494,7 @@ function viewOrders() {
         <td>${esc(s.custName || "—")}<div class="note">${esc(s.custPhone || "")}</div></td>
         <td class="name-cell">${esc(saleSummary(s))}${s.excWarn ? ` <span class="chip warn">⚠ 예외할인</span>` : ""}${s.memo ? ` <span class="chip">메모</span>` : ""}${s.exchangeOf ? `<div class="note" style="color:var(--warn)">교환 처리 중</div>` : ""}</td>
         <td>${typeChips(s)}</td><td class="r num">${won(s.total)}</td><td class="r num">${s.refunded ? won(s.refunded) : ""}</td><td>${stateChip(s)}</td>
-        <td>${isHQ() ? `<button class="btn sm red" data-act="order-delete" data-id="${s.id}">삭제</button> ` : ""}<button class="btn sm" data-act="order" data-id="${s.id}">열기</button></td></tr>`).join("");
+        <td><button class="btn sm" data-act="order" data-id="${s.id}">열기</button></td></tr>`).join("");
     return dateRow + orderRows;
   });
   return `<section class="panel">
@@ -2004,15 +1989,6 @@ document.addEventListener("click", async e => {
     commitSale(f);
   }
   else if (a === "order") openOrder(d.id);
-  else if (a === "order-delete") {
-    if (!isHQ()) { alert("본사만 주문 삭제 가능합니다"); return; }
-    const s = S.sales.find(x => x.id === d.id);
-    if (!s) return;
-    if (confirm(`주문 ${displayOrderNo(s.orderNo)} 삭제하시겠어요?\n\n${saleSummary(s)}\n\n삭제 후 복구 불가`)) {
-      const path = `s/${S.store}/sales/${s.id}`;
-      Net.rpc("pos_delete", { p_path: path, p_pin: S.pin }).then(() => { toast("✅ 주문 삭제됨"); S.sales = S.sales.filter(x => x.id !== s.id); render(); });
-    }
-  }
   else if (a === "receipt") { const s = S.sales.find(x => x.id === d.id); if (s) showReceipt(s); }
   else if (a === "cancel-open") openCancel(d.id, d.k);
   else if (a === "cancel-do") doCancel(d.id, d.k);
