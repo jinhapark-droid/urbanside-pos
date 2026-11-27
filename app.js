@@ -2176,10 +2176,23 @@ function start() {
       Net.start(
         () => {
           const docs = Net.docs();
-          const prefix = `s/${S.store}/sales/`;
+          // Supabase에서 sales + receipts 모두 로드
+          const salesPrefix = `s/${S.store}/sales/`;
           S.sales = Object.entries(docs)
-            .filter(([path]) => path.startsWith(prefix))
+            .filter(([path]) => path.startsWith(salesPrefix))
             .map(([, doc]) => normSale(doc));
+
+          // Supabase에서 receipts 로드 (초기재고 + 추가입고)
+          const receiptsPrefix = `s/${S.store}/receipts/`;
+          const sbReceipts = Object.entries(docs)
+            .filter(([path]) => path.startsWith(receiptsPrefix))
+            .map(([, doc]) => doc);
+
+          if (sbReceipts.length > 0) {
+            S.receipts = [...sbReceipts];
+            console.log(`✓ Supabase receipts: ${S.receipts.length}개`);
+          }
+
           render();
         },
         () => {
