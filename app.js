@@ -2165,7 +2165,7 @@ function showGate(msg = "") {
             const prefix = `s/${S.store}/sales/`;
             const remoteSales = Object.entries(docs)
               .filter(([path]) => path.startsWith(prefix))
-              .map(([, doc]) => doc);
+              .map(([path, doc]) => ({ ...doc, id: path.split('/').pop() }));
 
             // 로컬 판매(아직 Supabase에 없는 것)를 먼저 보존
             const remoteIds = new Set(remoteSales.map(s => s.id || s.orderNo));
@@ -2208,7 +2208,7 @@ function start() {
           const prefix = `s/${S.store}/sales/`;
           const remoteSales = Object.entries(docs)
             .filter(([path]) => path.startsWith(prefix))
-            .map(([, doc]) => doc);
+            .map(([path, doc]) => ({ ...doc, id: path.split('/').pop() }));
 
           // 로컬 판매(아직 Supabase에 없는 것)를 먼저 보존
           const remoteIds = new Set(remoteSales.map(s => s.id || s.orderNo));
