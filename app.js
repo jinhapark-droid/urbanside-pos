@@ -763,7 +763,7 @@ function openCancel(id, kind) {
               `<div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.1);cursor:pointer;min-height:70px;display:grid;grid-template-rows:auto auto auto;gap:6px;align-content:center" data-search-idx="${idx}">
                 <div style="font-weight:bold;font-size:13px;line-height:1.4">${esc(p.name)}</div>
                 <div style="font-size:12px;color:var(--dim);line-height:1.3">${esc(p.color)} / ${esc(p.size)}</div>
-                <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(p.price * (1 - (p.disc || 0)))}</div>
+                <div style="font-size:14px;font-weight:bold;color:var(--go)">${won(p.discount || p.price)}</div>
               </div>`
             ).join("");
             searchResults.style.display = "block";
@@ -783,7 +783,7 @@ function openCancel(id, kind) {
             const p = findProduct(q) || S.byBc[q];
             if (!p) { toast("상품을 찾지 못했어요.", "bad"); return; }
             const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+            if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
             scanInput.value = "";
             searchResults.style.display = "none";
             updateCalc();
@@ -802,7 +802,7 @@ function openCancel(id, kind) {
         )[idx];
         if (p) {
           const ex = newItems.find(it => it.bc === p.bc && it.color === p.color && it.size === p.size);
-          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.price * (1 - (p.disc || 0)), qty: 1 });
+          if (ex) ex.qty++; else newItems.push({ bc: p.bc, name: p.name, color: p.color, size: p.size, unit: p.discount || p.price, qty: 1 });
           $("#new-scan").value = "";
           $("#search-results").style.display = "none";
           updateCalc();
