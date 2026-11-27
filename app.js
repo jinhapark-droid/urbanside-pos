@@ -2164,8 +2164,12 @@ function showGate(msg = "") {
 }
 function start() {
   S.loaded = false;
-  // S.me가 이미 설정되어 있으면 유지, 아니면 기본값 사용
-  if (!S.me) S.me = { role: "store", store: "chungcheong" };
+  // PIN이 없으면 로그인 화면 보여주기
+  if (!Net.hasPin()) {
+    S.me = null;
+  } else if (!S.me) {
+    S.me = { role: "store", store: "chungcheong" };
+  }
   render();
   // Supabase 연동: 로컬 데이터 로드 후 Supabase에서 판매 데이터 동기화
   let deriveCompleted = false;
