@@ -720,11 +720,11 @@ function openCancel(id, kind) {
     newItems = [];
     const promo = storeCfg().promo || {};
     const updateCalc = () => {
-      const newItemGross = sum(newItems, it => it.unit * it.qty); // 새상품 정상가 합계
-      const finalGross = remainItemGross + newItemGross; // 최종 정상가 (남은품목 + 새상품)
-      const shouldPromo = finalGross >= (promo.threshold || 500000); // 50만원 이상이면 프로모션 적용
+      const newItemGross = sum(newItems, it => it.unit * it.qty);
+      const finalGross = remainItemGross + newItemGross;
+      const shouldPromo = finalGross >= (promo.threshold || 500000);
       const promoDisc = shouldPromo ? Math.round(newItemGross * (promo.rate || 0.05)) : 0;
-      const newAmt = newItemGross - promoDisc; // 새상품 판매가 (할인 적용됨)
+      const newAmt = newItemGross - promoDisc;
       const promoDisplay = shouldPromo ? ` (프로모션 ${Math.round((promo.rate || 0.05) * 100)}% 적용)` : " (프로모션 미적용)";
       const diff = cancelAmt - newAmt;
       $("#new-total").textContent = won(newAmt) + promoDisplay;
@@ -740,6 +740,17 @@ function openCancel(id, kind) {
           <button class="btn sm" data-act="new-item-del" data-idx="${idx}">삭제</button>
         </div>`;
       }).join("");
+      // 렌더링 후 리스너 다시 추가
+      const newItemsBox = $("#new-items-box");
+      if (newItemsBox) {
+        newItemsBox.querySelectorAll("button").forEach((btn, idx) => {
+          btn.onclick = e => {
+            e.preventDefault();
+            newItems.splice(idx, 1);
+            updateCalc();
+          };
+        });
+      }
     };
 
     setTimeout(() => {
