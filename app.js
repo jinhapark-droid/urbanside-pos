@@ -1752,17 +1752,16 @@ function viewRequest() {
         <button class="btn primary" data-act="req-confirm" ${items.length ? "" : "disabled"}>입고 요청 전표 만들기</button>
       </div>
     </section>
-  </div>
-  <section class="panel">
-    <div class="panel-h"><h2>요청 기록</h2><span class="sub">요청 → 출고확인(본사) → 입고완료</span></div>
-    <div class="list">${reqs.map(r => `<div class="list-item">
-      <span class="grow"><b>${mdhm(r.ts)}</b> · ${r.items.length}개 품목 ${r.qty}개<div class="meta">${esc(r.by || "")}${r.memo ? ` · ${esc(r.memo)}` : ""}</div></span>
-      <span class="chip ${r.status === "입고완료" ? "go" : r.status === "출고확인" ? "info" : "warn"}">${r.status}</span>
-      <span style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn sm" data-act="req-view" data-id="${r.id}">보기</button><button class="btn sm" data-act="req-slip" data-id="${r.id}">전표 받기</button>
-        ${r.status === "요청" && isHQ() ? `<button class="btn sm" data-act="req-ack" data-id="${r.id}">출고확인</button>` : ""}
-      </span></div>`).join("") || `<div class="empty">아직 입고 요청이 없어요.</div>`}</div>
-  </section>`;
+    <section class="panel">
+      <div class="panel-h"><h2>요청 기록</h2><span class="sub">요청 → 출고확인(본사) → 입고완료</span></div>
+      <div class="list" style="max-height:120px;overflow-y:auto">${reqs.map(r => `<div class="list-item">
+        <span class="grow"><b>${mdhm(r.ts)}</b> · ${r.items.length}개 품목 ${r.qty}개<div class="meta">${esc(r.by || "")}${r.memo ? ` · ${esc(r.memo)}` : ""}</div></span>
+        <span class="chip ${r.status === "입고완료" ? "go" : r.status === "출고확인" ? "info" : "warn"}">${r.status}</span>
+        <span style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn sm" data-act="req-view" data-id="${r.id}">보기</button><button class="btn sm" data-act="req-slip" data-id="${r.id}">전표 받기</button>
+          ${r.status === "요청" && isHQ() ? `<button class="btn sm" data-act="req-ack" data-id="${r.id}">출고확인</button>` : ""}
+        </span></div>`).join("") || `<div class="empty">아직 입고 요청이 없어요.</div>`}</div>
+    </section></div>`;
 }
 
 function viewReceive() {
