@@ -1626,22 +1626,30 @@ function viewRequest() {
     <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
     <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`; } });
 
-  // 신규추가 SKU 목록 추가
+  // 사이즈 정렬 순서
+  const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
+  const extractSize = (name) => { const m = name.match(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/); return m ? m[1] : ''; };
+
+  // 신규추가 SKU 목록 추가 (정렬)
+  let newItems = Object.entries(NEW_ITEMS).filter(([bc, item]) => !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w)))
+    .sort(([, a], [, b]) => (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999));
+
   let newRows = "";
-  for (const [bc, item] of Object.entries(NEW_ITEMS)) {
-    if (q.length && !q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w))) continue;
+  for (const [bc, item] of newItems) {
     const v = S.reqDraft[bc] || 0;
-    newRows += `<tr class="${item.avail <= 0 ? "out" : ""}">
-      <td>${esc(item.name.split(" ").slice(-2).join(" "))}</td><td class="mono">${bc}</td><td class="r num">-</td><td class="r num"><b>${item.avail}</b></td>
+    newRows += `<tr>
+      <td>${esc(item.name.split(" ").slice(0, -1).join(" "))}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
       <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
 
-  // 재고없음 SKU 목록 추가
-  for (const [bc, item] of Object.entries(NO_STOCK)) {
-    if (q.length && !q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w))) continue;
+  // 재고없음 SKU 목록 추가 (정렬)
+  let noStockItems = Object.entries(NO_STOCK).filter(([bc, item]) => !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w)))
+    .sort(([, a], [, b]) => (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999));
+
+  for (const [bc, item] of noStockItems) {
     newRows += `<tr class="out">
-      <td>${esc(item.name.split(" ").slice(-2).join(" "))}</td><td class="mono">${bc}</td><td class="r num">-</td><td class="r num"><b class="bad">재고 없음</b></td>
+      <td>${esc(item.name.split(" ").slice(0, -1).join(" "))}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
       <td class="c"><span class="qty">-</span></td>
       <td class="c"></td></tr>`;
   }
