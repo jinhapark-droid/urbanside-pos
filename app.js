@@ -1681,14 +1681,17 @@ function viewRequest() {
   const additionalKeys = [];
 
   for (const [bc, item] of Object.entries(allAdditionalItems)) {
-    if (colorSizeMap[`${extractColor(item.name)}/${extractSize(item.name)}`]) continue; // stockRows에 있으면 스킵
+    const size = extractSize(item.name);
+    const color = extractColor(item.name);
+    const colorSizeKey = `${color}/${size}`;
+
+    // stockRows에 이미 있으면 스킵 (중복 없음)
+    if (seenColorSizes.has(colorSizeKey)) continue;
+
     if (!q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w))) {
-      const size = extractSize(item.name);
-      const color = extractColor(item.name);
-      const key = `${color}/${size}`;
-      if (!additionalColorSizeMap[key]) {
-        additionalColorSizeMap[key] = { item, isNoStock: NO_STOCK[bc], bc };
-        additionalKeys.push(key);
+      if (!additionalColorSizeMap[colorSizeKey]) {
+        additionalColorSizeMap[colorSizeKey] = { item, isNoStock: NO_STOCK[bc], bc };
+        additionalKeys.push(colorSizeKey);
       }
     }
   }
