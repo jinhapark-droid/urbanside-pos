@@ -1754,7 +1754,7 @@ function viewRequest() {
     </section>
     <section class="panel">
       <div class="panel-h"><h2>요청 기록</h2><span class="sub">요청 → 출고확인(본사) → 입고완료</span></div>
-      <div class="list">${reqs.map(r => `<div class="list-item">
+      <div class="list" style="max-height:120px;overflow-y:auto">${reqs.map(r => `<div class="list-item">
         <span class="grow"><b>${mdhm(r.ts)}</b> · ${r.items.length}개 품목 ${r.qty}개<div class="meta">${esc(r.by || "")}${r.memo ? ` · ${esc(r.memo)}` : ""}</div></span>
         <span class="chip ${r.status === "입고완료" ? "go" : r.status === "출고확인" ? "info" : "warn"}">${r.status}</span>
         <span style="display:flex;gap:4px;flex-wrap:wrap">
