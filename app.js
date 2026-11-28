@@ -1727,7 +1727,7 @@ function viewRequest() {
   }
 
   const reqs = [...S.requests].sort((a, b) => b.ts - a.ts);
-  return `<div class="cols">
+  return `<div class="view">
     <section class="panel">
       <div class="panel-h"><h2>입고 요청 만들기</h2><span class="sub">본사에 요청할 상품과 수량을 고르세요</span>
         <div class="filters spacer">
@@ -1754,14 +1754,15 @@ function viewRequest() {
     </section>
     <section class="panel">
       <div class="panel-h"><h2>요청 기록</h2><span class="sub">요청 → 출고확인(본사) → 입고완료</span></div>
-      <div class="list" style="max-height:120px;overflow-y:auto">${reqs.map(r => `<div class="list-item">
+      <div class="list">${reqs.map(r => `<div class="list-item">
         <span class="grow"><b>${mdhm(r.ts)}</b> · ${r.items.length}개 품목 ${r.qty}개<div class="meta">${esc(r.by || "")}${r.memo ? ` · ${esc(r.memo)}` : ""}</div></span>
         <span class="chip ${r.status === "입고완료" ? "go" : r.status === "출고확인" ? "info" : "warn"}">${r.status}</span>
         <span style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn sm" data-act="req-view" data-id="${r.id}">보기</button><button class="btn sm" data-act="req-slip" data-id="${r.id}">전표 받기</button>
           ${r.status === "요청" && isHQ() ? `<button class="btn sm" data-act="req-ack" data-id="${r.id}">출고확인</button>` : ""}
         </span></div>`).join("") || `<div class="empty">아직 입고 요청이 없어요.</div>`}</div>
-    </section></div>`;
+    </section>
+  </div>`;
 }
 
 function viewReceive() {
