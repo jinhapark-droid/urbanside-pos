@@ -45,7 +45,7 @@ main{padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px)
 .panel-h .sub{color:var(--dim);font-size:13px}
 .panel-b{padding:14px}
 .spacer{margin-left:auto}
-.scroll{overflow:auto}
+.scroll{overflow-y:auto;overflow-x:hidden}
 
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
