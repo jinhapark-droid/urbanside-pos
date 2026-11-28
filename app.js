@@ -1657,7 +1657,7 @@ function viewRequest() {
         </div></div>
       <div class="scroll" style="max-height:44vh"><table>
         <thead><tr><th>옵션</th><th>이지어드민</th><th class="r">현장판매</th><th class="r">현재고</th><th class="c">요청 수량</th><th></th></tr></thead>
-        <tbody>${rows || newRows ? rows + newRows : `<tr><td colspan="6"><div class="empty"><strong>아직 판매된 상품이 없어요</strong>’입고 상품’이나 ‘전체 상품’을 눌러 고를 수 있어요.</div></td></tr>`}</tbody></table></div>
+        <tbody>${rows + newRows || `<tr><td colspan="6"><div class="empty"><strong>아직 판매된 상품이 없어요</strong>’입고 상품’이나 ‘전체 상품’을 눌러 고를 수 있어요.</div></td></tr>`}</tbody></table></div>
       <div class="req-cart">
         <div class="req-cart-h"><b>요청 목록</b><span class="note">${items.length ? `${items.length}개 품목 · 총 ${totalQ}개 담김` : "위 표에서 + 를 누르면 여기에 담겨요"}</span></div>
         ${items.length ? `<div class="scroll" style="max-height:30vh"><table><thead><tr><th>상품명</th><th>옵션</th><th>이지어드민</th><th class="r">현재고</th><th class="c">요청 수량</th><th class="c">작업</th></tr></thead>
