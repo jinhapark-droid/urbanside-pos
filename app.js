@@ -1727,7 +1727,7 @@ function viewRequest() {
   }
 
   const reqs = [...S.requests].sort((a, b) => b.ts - a.ts);
-  return `<div class="view">
+  return `<div class="cols">
     <section class="panel">
       <div class="panel-h"><h2>입고 요청 만들기</h2><span class="sub">본사에 요청할 상품과 수량을 고르세요</span>
         <div class="filters spacer">
