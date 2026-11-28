@@ -1335,7 +1335,13 @@ function openModal(title, body, foot) {
     <div class="modal-b">${body}</div><div class="modal-f">${foot}</div></div></div>`;
   const first = $("#modal-root [data-autofocus]"); if (first) first.focus();
 }
-function closeModal() { $("#modal-root").innerHTML = ""; }
+function closeModal() {
+  $("#modal-root").innerHTML = "";
+  if (S.tab === "orders") {
+    const main = $("#main");
+    main.innerHTML = viewOrders();
+  }
+}
 function openFinder() {
   openModal("상품 찾기", `<input class="input" id="finder-q" style="width:100%" placeholder="상품명, 컬러, 사이즈, 코드로 검색 (예: 후디 블랙 L)" data-autofocus>
     <div class="finder-grid" id="finder-list" style="margin-top:12px"></div>`, `<button class="btn" data-act="close">닫기</button>`);
