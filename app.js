@@ -1652,58 +1652,79 @@ function viewRequest() {
     if (f.mode === "carried" && !((L.init[p.bc] || 0) + (L.inQ[p.bc] || 0))) return false;
     return q.every(w => `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc}`.toLowerCase().includes(w));
   };
-  const rows = stockRows(fil, { span: 6, row: (p, L) => { const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0; return `<tr class="${st <= 0 ? "out" : ""}">
-    <td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
-    <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
-    <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`; } });
-
-  // 사이즈 정렬 순서
+  // 색상/사이즈로 그룹화하여 중복 제거
   const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
   const extractSize = (name) => { const m = name.match(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/); return m ? m[1] : ''; };
   const extractColor = (name) => name.replace(/\b(S|M|L|XL|XXL)\b/, '').trim().split(" ").pop();
 
-  // 신규추가 SKU 목록 추가 (색상·사이즈 순 정렬)
-  let newItems = Object.entries(NEW_ITEMS).filter(([bc, item]) => !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w)))
-    .sort(([, a], [, b]) => {
-      const aColor = extractColor(a.name);
-      const bColor = extractColor(b.name);
-      if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
-      return (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999);
-    });
+  // stockRows의 항목들을 색상/사이즈로 그룹화
+  const colorSizeMap = {};
+  const stockRowsData = [];
+  for (const p of S.products) {
+    if (!fil(p, L)) continue;
+    const key = `${p.color}/${p.size}`;
+    if (!colorSizeMap[key]) {
+      colorSizeMap[key] = { p, st: L.stock(p.bc), items: [p.bc] };
+      stockRowsData.push(key);
+    } else {
+      colorSizeMap[key].items.push(p.bc);
+    }
+  }
 
-  // NEW_ITEMS과 NO_STOCK의 중복 제거용 Set
-  const addedBcs = new Set();
-
-  let newRows = "";
-  for (const [bc, item] of newItems) {
-    const v = S.reqDraft[bc] || 0;
-    const size = extractSize(item.name);
-    const color = extractColor(item.name);
-    addedBcs.add(bc);
-    newRows += `<tr>
-      <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
-      <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
+  // stockRows 렌더링 (색상/사이즈 중복 제거)
+  let rows = "";
+  for (const key of stockRowsData) {
+    const { p, st, items } = colorSizeMap[key];
+    const v = S.reqDraft[p.bc] || 0;
+    rows += `<tr class="${st <= 0 ? "out" : ""}">
+      <td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
+      <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
       <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
 
-  // 재고없음 SKU 목록 추가 (색상·사이즈 순 정렬) - NEW_ITEMS에 없는 것만
-  let noStockItems = Object.entries(NO_STOCK).filter(([bc, item]) => {
-    if (addedBcs.has(bc)) return false; // NEW_ITEMS에 이미 추가된 것 제외
-    return !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w));
-  }).sort(([, a], [, b]) => {
-    const aColor = extractColor(a.name);
-    const bColor = extractColor(b.name);
+  // NEW_ITEMS + NO_STOCK을 색상/사이즈로 통합 (중복 제거)
+  const allAdditionalItems = { ...NEW_ITEMS, ...NO_STOCK };
+  const additionalColorSizeMap = {};
+  const additionalKeys = [];
+
+  for (const [bc, item] of Object.entries(allAdditionalItems)) {
+    if (colorSizeMap[`${extractColor(item.name)}/${extractSize(item.name)}`]) continue; // stockRows에 있으면 스킵
+    if (!q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w))) {
+      const size = extractSize(item.name);
+      const color = extractColor(item.name);
+      const key = `${color}/${size}`;
+      if (!additionalColorSizeMap[key]) {
+        additionalColorSizeMap[key] = { item, isNoStock: NO_STOCK[bc], bc };
+        additionalKeys.push(key);
+      }
+    }
+  }
+
+  // 추가 항목들을 색상/사이즈 순서대로 정렬
+  additionalKeys.sort((a, b) => {
+    const [aColor, aSize] = a.split('/');
+    const [bColor, bSize] = b.split('/');
     if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
-    return (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999);
+    return (sizeOrder[aSize] || 999) - (sizeOrder[bSize] || 999);
   });
 
-  for (const [bc, item] of noStockItems) {
+  let newRows = "";
+  for (const key of additionalKeys) {
+    const { item, isNoStock, bc } = additionalColorSizeMap[key];
+    const v = S.reqDraft[bc] || 0;
     const size = extractSize(item.name);
     const color = extractColor(item.name);
-    newRows += `<tr class="out">
-      <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
-      <td class="c"><span class="qty">-</span></td>
-      <td class="c"></td></tr>`;
+    if (isNoStock) {
+      newRows += `<tr class="out">
+        <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
+        <td class="c"><span class="chip bad">재고 없음</span></td>
+        <td class="c"></td></tr>`;
+    } else {
+      newRows += `<tr>
+        <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
+        <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
+        <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
+    }
   }
 
   const reqs = [...S.requests].sort((a, b) => b.ts - a.ts);
