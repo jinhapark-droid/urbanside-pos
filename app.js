@@ -1670,7 +1670,7 @@ function viewRequest() {
 
     const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0;
     rows += `<tr class="${st <= 0 ? "out" : ""}">
-      <td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
+      <td>${esc(p.name)}</td><td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
       <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
@@ -1712,12 +1712,12 @@ function viewRequest() {
     const color = extractColor(item.name);
     if (isNoStock) {
       newRows += `<tr class="out">
-        <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
+        <td>${esc(item.name)}</td><td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
         <td class="c"><span class="chip bad">재고 없음</span></td>
         <td class="c"></td></tr>`;
     } else {
       newRows += `<tr>
-        <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
+        <td>${esc(item.name)}</td><td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
         <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
         <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
     }
@@ -1733,8 +1733,8 @@ function viewRequest() {
           <button class="btn sm" data-act="req-fill">판매된 만큼 채우기</button><button class="btn sm" data-act="req-reset">비우기</button>
         </div></div>
       <div class="scroll" style="max-height:44vh"><table>
-        <thead><tr><th>옵션</th><th>이지어드민</th><th class="r">현장판매</th><th class="r">현재고</th><th class="c">요청 수량</th><th></th></tr></thead>
-        <tbody>${rows + newRows || `<tr><td colspan="6"><div class="empty"><strong>아직 판매된 상품이 없어요</strong>’입고 상품’이나 ‘전체 상품’을 눌러 고를 수 있어요.</div></td></tr>`}</tbody></table></div>
+        <thead><tr><th>품목명</th><th>옵션</th><th>이지어드민</th><th class="r">현장판매</th><th class="r">현재고</th><th class="c">요청 수량</th><th></th></tr></thead>
+        <tbody>${rows + newRows || `<tr><td colspan="7"><div class="empty"><strong>아직 판매된 상품이 없어요</strong>’입고 상품’이나 ‘전체 상품’을 눌러 고를 수 있어요.</div></td></tr>`}</tbody></table></div>
       <div class="req-cart">
         <div class="req-cart-h"><b>요청 목록</b><span class="note">${items.length ? `${items.length}개 품목 · 총 ${totalQ}개 담김` : "위 표에서 + 를 누르면 여기에 담겨요"}</span></div>
         ${items.length ? `<div class="scroll" style="max-height:30vh"><table><thead><tr><th>상품명</th><th>옵션</th><th>이지어드민</th><th class="r">현재고</th><th class="c">요청 수량</th><th class="c">작업</th></tr></thead>
