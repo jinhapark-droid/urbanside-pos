@@ -1653,8 +1653,10 @@ function viewRequest() {
   let newRows = "";
   for (const [bc, item] of newItems) {
     const v = S.reqDraft[bc] || 0;
+    const size = extractSize(item.name);
+    const color = item.name.replace(/\b(S|M|L|XL|XXL)\b/, '').trim().split(" ").pop();
     newRows += `<tr>
-      <td>${esc(item.name.split(" ").slice(0, -1).join(" "))}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
+      <td>${esc(color)} / ${esc(size)}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
       <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
