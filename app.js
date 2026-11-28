@@ -1303,7 +1303,7 @@ function dailyRows() {
     d.n++; d.qty += s.qty; d.gross += s.gross; d.baseDisc += s.baseDisc; d.promo += s.promoDisc; d.exc += s.excDisc; d.total += s.total; d.paid += s.paid;
     if (s.excDisc) d.excN++; if (s.memo) d.memoN++;
     for (const it of s.items) d.byType[it.type] += it.net;
-    for (const c of s.cancels) { const cd = D(dayKey(c.ts)); cd.refund += c.refund || 0; cd.cn++; }
+    for (const c of s.cancels) { d.refund += c.refund || 0; d.cn++; }
   }
   return Object.values(m).map(d => ({ ...d, netSales: d.total - d.refund })).sort((a, b) => b.day.localeCompare(a.day));
 }
@@ -1421,7 +1421,7 @@ function strip() {
   const L = ledger(), today = dayKey(Date.now()), td = dailyRows().find(d => d.day === today);
   const stock = sum(S.products, p => Math.max(0, L.stock(p.bc)));
   const todo = shipLines().filter(x => !x.it.exp && x.left > 0).length;
-  $("#strip").textContent = `${storeCfg().name} · 오늘 ${td ? td.n : 0}건 ${won(td ? td.netSales : 0)}원 · 매장 재고 ${stock}개${todo ? ` · 발주 대기 ${todo}줄` : ""}${S.exchange ? ` · 교환 진행 중(${S.exchange.orderNo})` : ""}`;
+  $("#strip").textContent = `${storeCfg().name} · 오늘 ${td ? td.n : 0}건 ${won(td ? td.netSales : 0)}원${td && td.cn > 0 ? ` · 취소 ${td.cn}건` : ""} · 매장 재고 ${stock}개${todo ? ` · 발주 대기 ${todo}줄` : ""}${S.exchange ? ` · 교환 진행 중(${S.exchange.orderNo})` : ""}`;
 }
 
 function viewSell() {
