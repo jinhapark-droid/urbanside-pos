@@ -105,6 +105,20 @@ async function loadPriceMapFromGoogleSheets() {
 }
 
 // ---------- 초기재고 로드 (CSV + 가격표 JSON) ----------
+// ✅ 초기재고로 로드할 SKU 화이트리스트 (색상·사이즈 무관)
+const ALLOWED_INIT_SKUS = [
+  "메리노 울 후디",
+  "플랩 90 폴라텍 알파 다이렉트 후디",
+  "플랩 190 폴라텍 알파 다이렉트 후디",
+  "제로인 옥타 하이브리드 쉘 후드 재킷",
+  "제로인 옥타 인슐레이션 팬츠",
+  "에일러론 울트라 1000 SUL 7D 후드 다운 재킷",
+  "에일러론 울트라 1000 SUL 후드 다운 재킷",
+  "에일러론 울트라 1000 SUL 다운 재킷",
+  "에일러론 900 UL 후드 다운 재킷",
+  "에일러론 900 익스페디션 다운 파카"
+];
+
 async function loadInitStockFromGoogleSheets() {
   console.log("📊 초기재고 로드 시작 (Supabase)");
   try {
@@ -153,19 +167,30 @@ async function loadInitStockFromGoogleSheets() {
         }
 
         const receipts = [];
-        let debugCount = 0;
+        const colorRegex = /\s+(차콜|블랙|블루|화이트|브라운|카멜|베이지|오렌지|실버|라이트|다크|그레이|무신사그레이|무신사차콜)(\s|$)/i;
+
         for (const line of lines) {
           if (!line.trim()) continue;
           const cols = line.split(',').map(c => c.trim().replace(/^"(.*)"$/, '$1'));
-          const name = cols[0];
+          let name = cols[0];
           const bc = cols[1];
-          const size = cols[2] || "F";
-          const color = cols[3] || "Free";
+          let size = cols[2] || "F";
+          let color = cols[3] || "Free";
           const qty = parseInt(cols[4]) || 0;
           if (!name || !bc || qty === 0) continue;
 
-          // [26FW] 등의 프리픽스 제거
-          let cleanName = name.replace(/^\[26FW\]\s*/, '').trim();
+          // 상품명에서 [26FW] 프리픽스 제거
+          name = name.replace(/^\[26FW\]\s*/, '').trim();
+
+          // 상품명에서 색상 제거 (이미 별도 열에 있으므로)
+          name = name.replace(colorRegex, '').trim();
+
+          // SKU 화이트리스트 필터링
+          const isAllowed = ALLOWED_INIT_SKUS.some(sku => name.includes(sku) || sku.includes(name));
+          if (!isAllowed) {
+            console.log(`⊘ 필터됨: ${name} (화이트리스트 미포함)`);
+            continue;
+          }
 
           // 가격 찾기 (정상가와 할인가)
           let price = 0;
@@ -173,32 +198,18 @@ async function loadInitStockFromGoogleSheets() {
           let discountPrice = 0;
           let pricesObj = null;
 
-          // 1. prices_full.json에서 정상가와 할인가 정보를 직접 가져오기
-          if (pricesFull && typeof pricesFull === 'object') {
-            if (pricesFull[name]) {
-              pricesObj = pricesFull[name];
-            } else if (pricesFull[cleanName]) {
-              pricesObj = pricesFull[cleanName];
-            } else if (color && color !== 'Free') {
-              const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
-              if (pricesFull[colorlessName]) {
-                pricesObj = pricesFull[colorlessName];
-              }
-            }
-          }
-
-          if (pricesObj) {
+          // prices_full.json에서 색상 포함된 정확한 이름으로 검색
+          const fullKey = `[26FW] ${name} ${color}`;
+          if (pricesFull && typeof pricesFull === 'object' && pricesFull[fullKey]) {
+            pricesObj = pricesFull[fullKey];
             normalPrice = pricesObj.normal || 0;
             discountPrice = pricesObj.discount || normalPrice;
             price = discountPrice;
           } else {
-            // 폴백: 기존 priceMap 사용
+            // 폴백: priceMap 사용
             if (color && color !== 'Free') {
-              const colorlessName = cleanName.replace(new RegExp(`\\s*${color}\\s*$`), '').trim();
-              price = priceMap[colorlessName];
-            }
-            if (!price) {
-              price = priceMap[cleanName];
+              const keyWithColor = `${name} ${color}`;
+              price = priceMap[keyWithColor];
             }
             if (!price) {
               price = priceMap[name];
@@ -236,9 +247,9 @@ async function loadInitStockFromGoogleSheets() {
       ts: new Date().toISOString(),
       by: "system",
       items: [
-        { bc: "DUMMY", name: "[26FW] 테스트 상품 1", size: "M", color: "블랙", qty: 50, unit: 100000, normal: 100000, discount: 90000 },
-        { bc: "DUMMY2", name: "[26FW] 테스트 상품 2", size: "L", color: "화이트", qty: 100, unit: 150000, normal: 150000, discount: 135000 },
-        { bc: "DUMMY3", name: "[26FW] 테스트 상품 3", size: "S", color: "그레이", qty: 75, unit: 120000, normal: 120000, discount: 108000 }
+        { bc: "DUMMY", name: "테스트 상품 1", size: "M", color: "블랙", qty: 50, unit: 100000, normal: 100000, discount: 90000 },
+        { bc: "DUMMY2", name: "테스트 상품 2", size: "L", color: "화이트", qty: 100, unit: 150000, normal: 150000, discount: 135000 },
+        { bc: "DUMMY3", name: "테스트 상품 3", size: "S", color: "그레이", qty: 75, unit: 120000, normal: 120000, discount: 108000 }
       ]
     }];
   } catch (e) {
