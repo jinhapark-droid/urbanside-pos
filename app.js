@@ -1639,7 +1639,14 @@ function viewStock() {
 function viewRequest() {
   const L = ledger(), f = S.reqFilter, q = f.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const items = reqItems(), totalQ = sum(items, i => i.qty);
+
+  // NEW_ITEMS과 NO_STOCK의 바코드 수집 (stockRows에서 중복 제외용)
+  const newItemBcs = new Set(Object.keys(NEW_ITEMS));
+  const noStockBcs = new Set(Object.keys(NO_STOCK));
+
   const fil = (p, L) => {
+    // NEW_ITEMS/NO_STOCK 항목은 stockRows에서 제외 (별도로 렌더링함)
+    if (newItemBcs.has(p.bc) || noStockBcs.has(p.bc)) return false;
     if (S.reqDraft[p.bc] > 0) return true;
     if (f.mode === "sold" && !L.net(p.bc)) return false;
     if (f.mode === "carried" && !((L.init[p.bc] || 0) + (L.inQ[p.bc] || 0))) return false;
