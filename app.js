@@ -2485,3 +2485,4 @@ $("#who").style.cursor = "pointer";
     derive().then(() => showGate());
   }
 })();
+// Force refresh - 1795878462
