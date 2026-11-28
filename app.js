@@ -1303,7 +1303,15 @@ function dailyRows() {
     d.n++; d.qty += s.qty; d.gross += s.gross; d.baseDisc += s.baseDisc; d.promo += s.promoDisc; d.exc += s.excDisc; d.total += s.total; d.paid += s.paid;
     if (s.excDisc) d.excN++; if (s.memo) d.memoN++;
     for (const it of s.items) d.byType[it.type] += it.net;
-    for (const c of s.cancels) { d.refund += c.refund || 0; d.cn++; }
+    // 취소는 주문 날짜에만 집계 (중복 방지)
+    const seenCancelIds = new Set();
+    for (const c of s.cancels) {
+      if (!seenCancelIds.has(c.id)) {
+        d.refund += c.refund || 0;
+        d.cn++;
+        seenCancelIds.add(c.id);
+      }
+    }
   }
   return Object.values(m).map(d => ({ ...d, netSales: d.total - d.refund })).sort((a, b) => b.day.localeCompare(a.day));
 }
@@ -1656,25 +1664,31 @@ function viewRequest() {
       return (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999);
     });
 
+  // NEW_ITEMS과 NO_STOCK의 중복 제거용 Set
+  const addedBcs = new Set();
+
   let newRows = "";
   for (const [bc, item] of newItems) {
     const v = S.reqDraft[bc] || 0;
     const size = extractSize(item.name);
     const color = extractColor(item.name);
+    addedBcs.add(bc);
     newRows += `<tr>
       <td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
       <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
 
-  // 재고없음 SKU 목록 추가 (색상·사이즈 순 정렬)
-  let noStockItems = Object.entries(NO_STOCK).filter(([bc, item]) => !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w)))
-    .sort(([, a], [, b]) => {
-      const aColor = extractColor(a.name);
-      const bColor = extractColor(b.name);
-      if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
-      return (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999);
-    });
+  // 재고없음 SKU 목록 추가 (색상·사이즈 순 정렬) - NEW_ITEMS에 없는 것만
+  let noStockItems = Object.entries(NO_STOCK).filter(([bc, item]) => {
+    if (addedBcs.has(bc)) return false; // NEW_ITEMS에 이미 추가된 것 제외
+    return !q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w));
+  }).sort(([, a], [, b]) => {
+    const aColor = extractColor(a.name);
+    const bColor = extractColor(b.name);
+    if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
+    return (sizeOrder[extractSize(a.name)] || 999) - (sizeOrder[extractSize(b.name)] || 999);
+  });
 
   for (const [bc, item] of noStockItems) {
     const size = extractSize(item.name);
