@@ -1659,6 +1659,22 @@ function viewRequest() {
   const fil = (p, L) => {
     // NEW_ITEMS/NO_STOCK 항목은 stockRows에서 제외 (별도로 렌더링함)
     if (newItemBcs.has(p.bc) || noStockBcs.has(p.bc)) return false;
+
+    // 상품명(색상/사이즈 제거)별로 초기재고 확인: 같은 상품의 색상 중 하나라도 있으면 모든 색상 포함
+    const color = extractColor(p.name);
+    const baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + color + '\\b(?!.*\\b' + color + '\\b)', 'i'), '').trim();
+
+    let hasInitStockInProduct = false;
+    for (const prod of S.products) {
+      const prodColor = extractColor(prod.name);
+      const prodBaseName = prod.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + prodColor + '\\b(?!.*\\b' + prodColor + '\\b)', 'i'), '').trim();
+      if (prodBaseName === baseName && L.init[prod.bc]) {
+        hasInitStockInProduct = true;
+        break;
+      }
+    }
+    if (!hasInitStockInProduct) return false;
+
     if (S.reqDraft[p.bc] > 0) return true;
     if (f.mode === "sold" && !L.net(p.bc)) return false;
     if (f.mode === "carried" && !((L.init[p.bc] || 0) + (L.inQ[p.bc] || 0))) return false;
@@ -1669,22 +1685,43 @@ function viewRequest() {
   const extractSize = (name) => { const m = name.match(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/); return m ? m[1] : ''; };
   const extractColor = (name) => name.replace(/\b(S|M|L|XL|XXL)\b/, '').trim().split(" ").pop();
 
-  // stockRows 단순 렌더링 (색상/사이즈 중복만 제거)
-  const seenColorSizes = new Set();
-  let rows = "";
+  // stockRows: 색상/사이즈 정렬 (가나다순 / S-M-L-XL-XXL)
+  const colorSizeMap = {};
+  const colorSizeKeys = [];
 
   for (const p of S.products) {
     if (!fil(p, L)) continue;
 
-    const colorSizeKey = `${p.color}/${p.size}`;
-    if (seenColorSizes.has(colorSizeKey)) continue; // 중복 제거
-    seenColorSizes.add(colorSizeKey);
+    // p.name에서 사이즈 추출 (p.size가 "F"/"Free" 같은 더미값일 경우 대비)
+    const size = extractSize(p.name) || (p.size && p.size !== 'F' ? p.size : '');
+    // p.name에서 색상 추출 (p.color가 "Free"일 경우 대비)
+    const color = p.color && p.color !== 'Free' ? p.color : extractColor(p.name);
+    const colorSizeKey = `${color}/${size}`;
 
+    if (!colorSizeMap[colorSizeKey]) {
+      colorSizeMap[colorSizeKey] = { p, color, size };
+      colorSizeKeys.push(colorSizeKey);
+    }
+  }
+
+  // 색상(가나다순) / 사이즈(S-M-L-XL-XXL) 정렬
+  colorSizeKeys.sort((a, b) => {
+    const [aColor, aSize] = a.split('/');
+    const [bColor, bSize] = b.split('/');
+    if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
+    return (sizeOrder[aSize] || 999) - (sizeOrder[bSize] || 999);
+  });
+
+  let rows = "";
+  for (const key of colorSizeKeys) {
+    const { p, color, size } = colorSizeMap[key];
     const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0;
+    // baseName: p.name에서 사이즈와 색상을 모두 제거한 순수 상품명
+    let baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b/g, '').trim();
+    if (color) baseName = baseName.replace(new RegExp('\\b' + color + '\\b', 'gi'), '').trim();
     rows += `<tr class="${st <= 0 ? "out" : ""}">
-      <td>${esc(p.name)}</td><td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
-      <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
-      <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
+      <td>${esc(baseName)}</td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
+      <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td></tr>`;
   }
 
   // NEW_ITEMS + NO_STOCK을 색상/사이즈로 통합 (중복 제거)
@@ -1722,16 +1759,15 @@ function viewRequest() {
     const v = S.reqDraft[bc] || 0;
     const size = extractSize(item.name);
     const color = extractColor(item.name);
+    const baseName = item.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + color + '\\b(?!.*\\b' + color + '\\b)', 'i'), '').trim();
     if (isNoStock) {
       newRows += `<tr class="out">
-        <td>${esc(item.name)}</td><td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
-        <td class="c"><span class="chip bad">재고 없음</span></td>
-        <td class="c"></td></tr>`;
+        <td>${esc(baseName)}</td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b class="bad">재고 없음</b></td>
+        <td class="c"><span class="chip bad">재고 없음</span></td></tr>`;
     } else {
       newRows += `<tr>
-        <td>${esc(item.name)}</td><td>${esc(color)}${size ? ' / ' + esc(size) : ''}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
-        <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td>
-        <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
+        <td>${esc(baseName)}</td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${bc}</td><td class="r num">0</td><td class="r num"><b>0</b></td>
+        <td class="c"><span class="qty"><button data-act="rq" data-bc="${bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${bc}" data-rq="${bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${bc}" data-d="1">+</button></span></td></tr>`;
     }
   }
 
@@ -1745,12 +1781,12 @@ function viewRequest() {
           <button class="btn sm" data-act="req-fill">판매된 만큼 채우기</button><button class="btn sm" data-act="req-reset">비우기</button>
         </div></div>
       <div class="scroll" style="max-height:44vh"><table>
-        <thead><tr><th>품목명</th><th>옵션</th><th>이지어드민</th><th class="r">현장판매</th><th class="r">현재고</th><th class="c">요청 수량</th><th></th></tr></thead>
+        <thead><tr><th>품목명</th><th>색상</th><th>사이즈</th><th class="mono">이지어드민</th><th class="r">현장판매</th><th class="r">현재고</th><th class="c">요청 수량</th></tr></thead>
         <tbody>${rows + newRows || `<tr><td colspan="7"><div class="empty"><strong>아직 판매된 상품이 없어요</strong>’입고 상품’이나 ‘전체 상품’을 눌러 고를 수 있어요.</div></td></tr>`}</tbody></table></div>
       <div class="req-cart">
         <div class="req-cart-h"><b>요청 목록</b><span class="note">${items.length ? `${items.length}개 품목 · 총 ${totalQ}개 담김` : "위 표에서 + 를 누르면 여기에 담겨요"}</span></div>
-        ${items.length ? `<div class="scroll" style="max-height:30vh"><table><thead><tr><th>상품명</th><th>옵션</th><th>이지어드민</th><th class="r">현재고</th><th class="c">요청 수량</th><th class="c">작업</th></tr></thead>
-          <tbody>${items.map(i => { const p = S.byBc[i.bc]; return `<tr><td class="name-cell"><b>${esc(p.name)}</b></td><td>${esc(optLabel(p))}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.stock(p.bc)}</td>
+        ${items.length ? `<div class="scroll" style="max-height:30vh"><table><thead><tr><th>상품명</th><th>색상</th><th>사이즈</th><th class="mono">이지어드민</th><th class="r">현재고</th><th class="c">요청 수량</th><th class="c">작업</th></tr></thead>
+          <tbody>${items.map(i => { const p = S.byBc[i.bc]; const size = extractSize(p.name) || (p.size && p.size !== 'F' ? p.size : ''); const color = p.color && p.color !== 'Free' ? p.color : extractColor(p.name); let baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b/g, '').trim(); if (color) baseName = baseName.replace(new RegExp('\\b' + color + '\\b', 'gi'), '').trim(); return `<tr><td class="name-cell"><b>${esc(baseName)}</b></td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.stock(p.bc)}</td>
             <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><b class="num" style="min-width:28px;display:inline-block">${i.qty}</b><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
             <td class="c"><button class="btn sm" data-act="rdel" data-bc="${p.bc}">삭제</button></td></tr>`; }).join("")}</tbody></table></div>` : ""}
       </div>
