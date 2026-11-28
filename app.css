@@ -47,8 +47,8 @@ main{padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px)
 .spacer{margin-left:auto}
 .scroll{overflow-y:auto;overflow-x:hidden;width:100%}
 
-table{width:100%;border-collapse:collapse;table-layout:fixed}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:normal;word-break:break-word}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:normal;word-break:break-word}
 th{background:var(--surface-2);font-weight:600;font-size:12.5px;color:var(--dim);position:sticky;top:0;z-index:1}
 td.r,th.r{text-align:right}
 td.c,th.c{text-align:center}
@@ -105,9 +105,9 @@ tr.unmatched td{background:var(--bad-soft);color:var(--bad)}
 .drop strong{color:var(--fg)}
 .note{font-size:12.5px;color:var(--dim)}
 .list{display:grid}
-.list-item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.list-item{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px}
 .list-item:last-child{border-bottom:0}
-.list-item .meta{color:var(--dim);font-size:12.5px}
+.list-item .meta{color:var(--dim);font-size:11px}
 .list-item .grow{flex:1;min-width:160px}
 .canceled{text-decoration:line-through;color:var(--dim)}
 
