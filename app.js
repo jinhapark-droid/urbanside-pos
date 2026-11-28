@@ -1692,18 +1692,22 @@ function viewRequest() {
   const newItemBcs = new Set(Object.keys(NEW_ITEMS));
   const noStockBcs = new Set(Object.keys(NO_STOCK));
 
+  const escapeRegExp = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
   const fil = (p, L) => {
     // NEW_ITEMS/NO_STOCK 항목은 stockRows에서 제외 (별도로 렌더링함)
     if (newItemBcs.has(p.bc) || noStockBcs.has(p.bc)) return false;
 
     // 상품명(색상/사이즈 제거)별로 초기재고 확인: 같은 상품의 색상 중 하나라도 있으면 모든 색상 포함
     const color = extractColor(p.name);
-    const baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + color + '\\b(?!.*\\b' + color + '\\b)', 'i'), '').trim();
+    const colorEsc = escapeRegExp(color);
+    const baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + colorEsc + '\\b(?!.*\\b' + colorEsc + '\\b)', 'i'), '').trim();
 
     let hasInitStockInProduct = false;
     for (const prod of S.products) {
       const prodColor = extractColor(prod.name);
-      const prodBaseName = prod.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + prodColor + '\\b(?!.*\\b' + prodColor + '\\b)', 'i'), '').trim();
+      const prodColorEsc = escapeRegExp(prodColor);
+      const prodBaseName = prod.name.replace(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/, '').replace(new RegExp('\\b' + prodColorEsc + '\\b(?!.*\\b' + prodColorEsc + '\\b)', 'i'), '').trim();
       if (prodBaseName === baseName && L.init[prod.bc]) {
         hasInitStockInProduct = true;
         break;
