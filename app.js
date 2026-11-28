@@ -2403,11 +2403,11 @@ function showGate(msg = "") {
             const localOnlySales = S.sales.filter(s => !remoteIds.has(s.id || s.orderNo));
 
             S.sales = [...localOnlySales, ...remoteSales];
-            console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개 (로컬 ${localOnlySales.length}개)`);
+            console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개`);
             render();
           },
           () => {
-            setConn(false, "로컬 모드 (동기화 오류)");
+            setConn(false, "Supabase 연동 오류");
             render();
           }
         );
@@ -2449,18 +2449,18 @@ function start() {
           const localOnlySales = S.sales.filter(s => !remoteIds.has(s.id || s.orderNo));
 
           S.sales = [...localOnlySales, ...remoteSales];
-          console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개 (로컬 ${localOnlySales.length}개), 초기 재고 225개 유지`);
+          console.log(`✓ Supabase 연동됨 - 판매기록 ${S.sales.length}개`);
 
           render();
         },
         () => {
-          setConn(false, "로컬 모드 (동기화 오류)");
+          setConn(false, "Supabase 연동 오류");
           render();
         }
       );
       setConn(null, "연결 중 · Supabase 동기화");
     } else {
-      setConn(false, "로컬 모드");
+      setConn(false, "Supabase 연동 불가");
     }
     render();
   }).catch(err => {
