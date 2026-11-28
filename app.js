@@ -1,9 +1,4 @@
 "use strict";
-// ✅ 초기화: 오래된 캐시 제거 (prices_full.json inline 로드 위해)
-if (localStorage.getItem("pos.priceMapVersion") !== "v2") {
-  localStorage.clear();
-  localStorage.setItem("pos.priceMapVersion", "v2");
-}
 
 // 어반사이드 팝업 POS — 판매·재고 기록과 본사 공유용. 실결제는 매장(백화점) 단말기에서 한다.
 // 데이터: Google Sheets 기반 (어반사이드_초기재고_225 Sheet)
