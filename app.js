@@ -111,25 +111,42 @@ async function loadPriceMapFromGoogleSheets() {
 
 // ---------- 초기재고 로드 (CSV + 가격표 JSON) ----------
 async function loadInitStockFromGoogleSheets() {
+  console.log("📊 초기재고 로드 시작 (Supabase)");
   try {
-    // 로컬 파일 시도 (3초 타임아웃)
+    // ✅ Supabase에서 직접 로드 (기본)
+    if (Net.docs && typeof Net.docs === 'function') {
+      try {
+        const docs = Net.docs();
+        const initStockDocs = Object.entries(docs)
+          .filter(([path]) => path.startsWith('s/chungcheong/receipts/'))
+          .map(([path, doc]) => doc);
+
+        if (initStockDocs.length > 0) {
+          console.log(`✅ Supabase에서 ${initStockDocs.length}건의 초기재고 로드`);
+          return initStockDocs;
+        }
+      } catch (e) {
+        console.warn('⚠️ Supabase 로드 실패, 로컬 파일 시도:', e.message);
+      }
+    }
+
+    // 폴백: 로컬 파일 시도 (2초 타임아웃)
     let csv = null;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const resp = await fetch('data/stock.csv', { signal: controller.signal });
       clearTimeout(timeoutId);
       csv = resp.ok ? await resp.text() : null;
     } catch (e) {
-      console.warn('로컬 stock.csv 로드 실패, Google Sheets 사용:', e.message);
+      console.warn('⏱️ stock.csv 타임아웃');
       csv = null;
     }
 
-    if (csv) {
-      if (csv) {
-
-        const lines = csv.trim().split('\n').slice(1);
-        const priceMap = await loadPriceMapFromGoogleSheets();
+    if (csv && csv.trim()) {
+      console.log("✅ stock.csv 로드 성공");
+      const lines = csv.trim().split('\n').slice(1);
+      const priceMap = await loadPriceMapFromGoogleSheets();
 
         // prices_full.json 로드
         let pricesFull = {};
@@ -205,27 +222,39 @@ async function loadInitStockFromGoogleSheets() {
         }
 
         if (receipts.length > 0) {
-          const item = receipts[0].items[0];
+          console.log(`✅ ${receipts.length}건의 초기재고 로드됨`);
         }
         return receipts;
+      } else {
+        console.warn("⚠️ CSV가 비어있음, 더미 데이터 사용");
       }
     } catch (localErr) {
-      console.error("❌ stock.csv 로드 실패:", localErr);
+      console.error("❌ stock.csv 처리 실패:", localErr);
     }
 
-    // 로컬 파일 로드 실패 시 테스트용 더미 데이터 반환
+    // 로컬 파일 로드 실패 시 더미 데이터 반환 (즉시)
+    console.log("🔄 더미 데이터로 시작합니다");
     return [{
       kind: "init",
-      label: "로컬_초기재고",
+      label: "더미_초기재고",
       ts: new Date().toISOString(),
       by: "system",
       items: [
-        { bc: "TEST001", name: "테스트 상품", size: "F", color: "Free", qty: 225, unit: 100000, normal: 100000, discount: 100000 }
+        { bc: "DUMMY", name: "[26FW] 테스트 상품 1", size: "M", color: "블랙", qty: 50, unit: 100000, normal: 100000, discount: 90000 },
+        { bc: "DUMMY2", name: "[26FW] 테스트 상품 2", size: "L", color: "화이트", qty: 100, unit: 150000, normal: 150000, discount: 135000 },
+        { bc: "DUMMY3", name: "[26FW] 테스트 상품 3", size: "S", color: "그레이", qty: 75, unit: 120000, normal: 120000, discount: 108000 }
       ]
     }];
   } catch (e) {
-    console.error("초기재고 로드 실패:", e);
-    return [];
+    console.error("❌ 초기재고 로드 최종 실패:", e);
+    // 아무리 실패해도 더미 데이터 반환 (로딩 풀기)
+    return [{
+      kind: "init",
+      label: "폴백_더미재고",
+      ts: new Date().toISOString(),
+      by: "system",
+      items: [{ bc: "FALLBACK", name: "시스템 테스트", size: "F", color: "Free", qty: 1, unit: 0, normal: 0, discount: 0 }]
+    }];
   }
 }
 
