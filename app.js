@@ -143,10 +143,11 @@ async function loadInitStockFromGoogleSheets() {
       csv = null;
     }
 
-    if (csv && csv.trim()) {
-      console.log("✅ stock.csv 로드 성공");
-      const lines = csv.trim().split('\n').slice(1);
-      const priceMap = await loadPriceMapFromGoogleSheets();
+    try {
+      if (csv && csv.trim()) {
+        console.log("✅ stock.csv 로드 성공");
+        const lines = csv.trim().split('\n').slice(1);
+        const priceMap = await loadPriceMapFromGoogleSheets();
 
         // prices_full.json 로드
         let pricesFull = {};
