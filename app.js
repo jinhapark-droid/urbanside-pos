@@ -660,14 +660,22 @@ function lineState(it) {
   if ((it.ezc || 0) > (it.ezcDone || 0)) parts.push(`<span class="chip bad">이지어드민 발주 취소 필요</span>`);
   return parts.join(" ");
 }
-function deleteSale(id) {
+async function deleteSale(id) {
   const s = S.sales.find(x => x.id === id); if (!s) return;
-  if (!confirm(`주문 ${displayOrderNo(s.orderNo)} (${saleSummary(s)})을(를) 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
-  S.sales = S.sales.filter(x => x.id !== id);
-  saveStoreData();
-  closeModal();
-  renderSalesTable();
-  alert("주문이 삭제되었습니다.");
+  if (!confirm(`주문 ${displayOrderNo(s.orderNo)} (${saleSummary(s)})을(를) 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.\n\n본사 PIN이 필요합니다.`)) return;
+  const hqPin = prompt("본사 PIN을 입력해 주세요:");
+  if (!hqPin) return;
+  try {
+    await Net.del(P("sales", id));
+    S.sales = S.sales.filter(x => x.id !== id);
+    saveStoreData();
+    closeModal();
+    renderSalesTable();
+    alert("주문이 삭제되었습니다.");
+  } catch (e) {
+    if (/권한|PIN|마스터/i.test(e.message)) alert("본사 PIN이 올바르지 않거나 권한이 없어요.");
+    else alert("삭제 중 오류 발생: " + e.message);
+  }
 }
 function openOrder(id) {
   const s = S.sales.find(x => x.id === id); if (!s) return;
