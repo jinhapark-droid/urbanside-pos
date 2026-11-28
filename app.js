@@ -1161,10 +1161,11 @@ async function submitRequest(reqByName) {
   const items = reqItems(); if (!items.length) return;
   const now = Date.now(), id = "R" + stamp().replace("_", "-") + "-" + Math.random().toString(36).slice(2, 5);
   const finalBy = reqByName?.trim() || S.me.name;
-  const doc = { ts: now, by: finalBy, memo: S.reqMemo.trim(), items, qty: sum(items, i => i.qty), status: "요청" };
+  const doc = { id, ts: now, by: finalBy, memo: S.reqMemo.trim(), items, qty: sum(items, i => i.qty), status: "요청" };
   closeModal();
   try {
     await Net.put(P("requests", id), doc);
+    S.requests.push(doc);
     S.reqDraft = {}; S.reqMemo = ""; $("#req-by").value = ""; render();
     openModal("입고 요청 완료", `<div class="confirm-big" style="color:var(--ok)">✓ 입고 요청이 저장되었습니다.</div>
       <p><b>${items.length}개 품목, 총 ${sum(items, i => i.qty)}개</b> 요청이 기록되었어요.</p>
