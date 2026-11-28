@@ -112,9 +112,20 @@ async function loadPriceMapFromGoogleSheets() {
 // ---------- 초기재고 로드 (CSV + 가격표 JSON) ----------
 async function loadInitStockFromGoogleSheets() {
   try {
-    // 로컬 파일 시도
+    // 로컬 파일 시도 (3초 타임아웃)
+    let csv = null;
     try {
-      const csv = await fetch('data/stock.csv').then(r => r.text());
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const resp = await fetch('data/stock.csv', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      csv = resp.ok ? await resp.text() : null;
+    } catch (e) {
+      console.warn('로컬 stock.csv 로드 실패, Google Sheets 사용:', e.message);
+      csv = null;
+    }
+
+    if (csv) {
       if (csv) {
 
         const lines = csv.trim().split('\n').slice(1);
