@@ -1758,8 +1758,13 @@ function viewRequest() {
   });
 
   let rows = "";
+
+  // seenColorSizes 생성: stockRows에서 이미 렌더링된 색상/사이즈 조합 추적
+  const seenColorSizes = new Set();
+
   for (const key of colorSizeKeys) {
     const { p, color, size, baseName } = colorSizeMap[key];
+    seenColorSizes.add(`${color}/${size}`);
     const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0;
     rows += `<tr class="${st <= 0 ? "out" : ""}">
       <td>${esc(baseName)}</td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
