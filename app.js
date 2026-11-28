@@ -1157,16 +1157,19 @@ function saveFile(filename, data) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 const fileTag = () => storeCfg().name.replace(/\s/g, "");
-async function submitRequest() {
+async function submitRequest(reqByName) {
   const items = reqItems(); if (!items.length) return;
   const now = Date.now(), id = "R" + stamp().replace("_", "-") + "-" + Math.random().toString(36).slice(2, 5);
-  const doc = { ts: now, by: S.me.name, memo: S.reqMemo.trim(), items, qty: sum(items, i => i.qty), status: "요청" };
+  const finalBy = reqByName?.trim() || S.me.name;
+  const doc = { ts: now, by: finalBy, memo: S.reqMemo.trim(), items, qty: sum(items, i => i.qty), status: "요청" };
   closeModal();
   try {
     await Net.put(P("requests", id), doc);
-    S.reqDraft = {}; S.reqMemo = ""; render();
-    toast("입고 요청을 등록했어요.", "go");
-    saveFile(`${fileTag()}_출고요청_${stamp()}_전표.xlsx`, slipBook(items, "출고수량"));
+    S.reqDraft = {}; S.reqMemo = ""; $("#req-by").value = ""; render();
+    openModal("입고 요청 완료", `<div class="confirm-big" style="color:var(--ok)">✓ 입고 요청이 저장되었습니다.</div>
+      <p><b>${items.length}개 품목, 총 ${sum(items, i => i.qty)}개</b> 요청이 기록되었어요.</p>
+      <p class="note" style="margin-top:15px">본사에 따로 올릴 필요 없어요. 필요할 때 아래 '요청 기록'에서 '전표 받기'로 다운로드할 수 있습니다.</p>`,
+      `<button class="btn primary" data-act="close" data-autofocus>확인</button>`);
   } catch (e) { writeFail(e); }
 }
 async function setReqStatus(id, status) {
@@ -1744,6 +1747,7 @@ function viewRequest() {
       </div>
       <div class="panel-b" style="border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input class="input" id="req-memo" style="flex:1;min-width:200px" placeholder="메모 (예: 주말 대비 다운 재킷 보충)" value="${esc(S.reqMemo)}">
+        <input class="input" id="req-by" style="width:120px" placeholder="요청자 이름" value="">
         <span><b class="num">${items.length}</b>개 품목 · 총 <b class="num">${totalQ}</b>개</span>
         <button class="btn primary" data-act="req-confirm" ${items.length ? "" : "disabled"}>입고 요청 전표 만들기</button>
       </div>
@@ -2166,12 +2170,15 @@ document.addEventListener("click", async e => {
   else if (a === "rdel") { delete S.reqDraft[d.bc]; render(); }
   else if (a === "req-confirm") {
     const items = reqItems();
+    const reqByName = $("#req-by").value || "";
     openModal("입고 요청 전표 만들기", `<div class="confirm-big">${items.length}개 품목, 총 ${sum(items, i => i.qty)}개를 본사에 요청할까요?</div>
       <table><thead><tr><th>상품코드</th><th>상품</th><th class="r">수량</th></tr></thead><tbody>${items.map(i => { const p = S.byBc[i.bc]; return `<tr><td class="mono">${esc(p.ez)}</td><td class="name-cell">${esc(p.name)} <span class="note">${esc(optLabel(p))}</span></td><td class="r num">${i.qty}</td></tr>`; }).join("")}</tbody></table>
-      <p class="note">요청이 기록되고, 이지어드민 전표 엑셀(상품코드 / 요청수량 / 출고수량)이 저장돼요.</p>`,
+      <div style="display:flex;gap:10px;margin-top:10px"><label>요청자 이름:</label><input class="input" id="modal-req-by" value="${esc(reqByName)}" placeholder="이름 입력" style="flex:1;min-width:150px"></div>
+      <p class="note">요청이 기록되고, 이지어드민 전표 엑셀(상품코드 / 요청수량 / 출고수량)이 저장돼요. 따로 올릴 필요 없어요!</p>`,
       `<button class="btn" data-act="close">돌아가기</button><button class="btn primary" data-act="req-submit" data-autofocus>요청 등록 + 전표 저장</button>`);
+    setTimeout(() => $("#modal-req-by")?.focus(), 100);
   }
-  else if (a === "req-submit") { b.disabled = true; submitRequest(); }
+  else if (a === "req-submit") { b.disabled = true; const reqByName = $("#modal-req-by")?.value || ""; submitRequest(reqByName); }
   else if (a === "req-slip") { const r = S.requests.find(x => x.id === d.id); saveFile(`${fileTag()}_출고요청_${r.id.slice(1, 12)}_전표.xlsx`, slipBook(r.items, "출고수량")); }
   else if (a === "req-ack") setReqStatus(d.id, "출고확인");
   else if (a === "req-view") {
