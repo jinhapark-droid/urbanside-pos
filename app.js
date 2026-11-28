@@ -1793,12 +1793,11 @@ function viewRequest() {
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td></tr>`;
   }
 
-  // NEW_ITEMS + NO_STOCK을 색상/사이즈로 통합 (중복 제거)
-  const allAdditionalItems = { ...NEW_ITEMS, ...NO_STOCK };
+  // NEW_ITEMS만 색상/사이즈로 통합 (NO_STOCK은 제외 - 초기재고 없음)
   const additionalColorSizeMap = {};
   const additionalKeys = [];
 
-  for (const [bc, item] of Object.entries(allAdditionalItems)) {
+  for (const [bc, item] of Object.entries(NEW_ITEMS)) {
     const size = extractSize(item.name);
     const color = extractColor(item.name);
     const colorSizeKey = `${color}/${size}`;
@@ -1808,7 +1807,7 @@ function viewRequest() {
 
     if (!q.length || q.every(w => `${item.name} ${bc}`.toLowerCase().includes(w))) {
       if (!additionalColorSizeMap[colorSizeKey]) {
-        additionalColorSizeMap[colorSizeKey] = { item, isNoStock: NO_STOCK[bc], bc };
+        additionalColorSizeMap[colorSizeKey] = { item, isNoStock: false, bc };
         additionalKeys.push(colorSizeKey);
       }
     }
