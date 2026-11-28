@@ -119,6 +119,23 @@ const ALLOWED_INIT_SKUS = [
   "에일러론 900 익스페디션 다운 파카"
 ];
 
+// ✅ 입고요청 화면에서만 표시할 SKU (초기재고 미포함)
+const HIDDEN_FROM_REQUEST = [
+  "플랩 가루이시 후디",
+  "제로인 옥타 에어 후디",
+  "제로인 옥타 에어 타이즈",
+  "제로인 옥타 에어 베이스 레이어 후디",
+  "제로인 옥타 에어 롱슬리브 티셔츠",
+  "제로인 옥타 하이브리드 캡",
+  "플랩 90 폴라텍 알파 다이렉트 바라클라바",
+  "플랩 90 폴라텍 알파 다이렉트 넥 워머",
+  "이지모드 프라임플렉스 써모 팬츠",
+  "써모코어 액티브 후드 재킷",
+  "써모코어 액티브 빌레이 파카",
+  "메리노 울 롱슬리브 티셔츠",
+  "어반사이드 테고"
+];
+
 async function loadInitStockFromGoogleSheets() {
   console.log("📊 초기재고 로드 시작 (Supabase)");
   try {
@@ -1709,6 +1726,10 @@ function viewRequest() {
     // NEW_ITEMS/NO_STOCK 항목은 stockRows에서 제외 (별도로 렌더링함)
     if (newItemBcs.has(p.bc) || noStockBcs.has(p.bc)) return false;
 
+    // 미로드 SKU는 입고요청 리스트에서 제거
+    const isHidden = HIDDEN_FROM_REQUEST.some(sku => p.name.includes(sku));
+    if (isHidden) return false;
+
     // 상품명(색상/사이즈 제거)별로 초기재고 확인: 같은 상품의 색상 중 하나라도 있으면 모든 색상 포함
     const color = extractColor(p.name);
     const colorEsc = escapeRegExp(color);
@@ -1788,6 +1809,10 @@ function viewRequest() {
   const additionalKeys = [];
 
   for (const [bc, item] of Object.entries(allAdditionalItems)) {
+    // 미로드 SKU는 추가 항목에서도 제거
+    const isHidden = HIDDEN_FROM_REQUEST.some(sku => item.name.includes(sku));
+    if (isHidden) continue;
+
     const size = extractSize(item.name);
     const color = extractColor(item.name);
     const colorSizeKey = `${color}/${size}`;
