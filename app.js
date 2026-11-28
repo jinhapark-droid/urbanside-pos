@@ -1696,29 +1696,31 @@ function viewRequest() {
     const size = extractSize(p.name) || (p.size && p.size !== 'F' ? p.size : '');
     // p.name에서 색상 추출 (p.color가 "Free"일 경우 대비)
     const color = p.color && p.color !== 'Free' ? p.color : extractColor(p.name);
-    const colorSizeKey = `${color}/${size}`;
+    // baseName 추출: 색상/사이즈 모두 제거
+    let baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b/g, '').trim();
+    if (color) baseName = baseName.replace(new RegExp('\\b' + color + '\\b', 'gi'), '').trim();
+
+    const colorSizeKey = `${baseName}/${color}/${size}`;
 
     if (!colorSizeMap[colorSizeKey]) {
-      colorSizeMap[colorSizeKey] = { p, color, size };
+      colorSizeMap[colorSizeKey] = { p, color, size, baseName };
       colorSizeKeys.push(colorSizeKey);
     }
   }
 
-  // 색상(가나다순) / 사이즈(S-M-L-XL-XXL) 정렬
+  // 품목명 / 색상(가나다순) / 사이즈(S-M-L-XL-XXL) 정렬
   colorSizeKeys.sort((a, b) => {
-    const [aColor, aSize] = a.split('/');
-    const [bColor, bSize] = b.split('/');
+    const [aBaseName, aColor, aSize] = a.split('/');
+    const [bBaseName, bColor, bSize] = b.split('/');
+    if (aBaseName !== bBaseName) return aBaseName.localeCompare(bBaseName, 'ko-KR');
     if (aColor !== bColor) return aColor.localeCompare(bColor, 'ko-KR');
     return (sizeOrder[aSize] || 999) - (sizeOrder[bSize] || 999);
   });
 
   let rows = "";
   for (const key of colorSizeKeys) {
-    const { p, color, size } = colorSizeMap[key];
+    const { p, color, size, baseName } = colorSizeMap[key];
     const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0;
-    // baseName: p.name에서 사이즈와 색상을 모두 제거한 순수 상품명
-    let baseName = p.name.replace(/\b(S|M|L|XL|XXL)\b/g, '').trim();
-    if (color) baseName = baseName.replace(new RegExp('\\b' + color + '\\b', 'gi'), '').trim();
     rows += `<tr class="${st <= 0 ? "out" : ""}">
       <td>${esc(baseName)}</td><td>${esc(color)}</td><td>${esc(size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
       <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td></tr>`;
