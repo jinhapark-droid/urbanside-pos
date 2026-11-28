@@ -37,7 +37,7 @@ nav.tabs a[aria-current="page"]{color:var(--yellow);border-bottom-color:var(--ye
 
 main{padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1400px;margin:0 auto}
 .view{display:grid;gap:16px}
-.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
 @media (max-width:900px){.cols{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;min-width:0;overflow:hidden}
 .panel-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
