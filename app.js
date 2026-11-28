@@ -1652,47 +1652,27 @@ function viewRequest() {
     if (f.mode === "carried" && !((L.init[p.bc] || 0) + (L.inQ[p.bc] || 0))) return false;
     return q.every(w => `${p.name} ${p.color} ${p.size} ${p.ez} ${p.bc}`.toLowerCase().includes(w));
   };
-  // 색상/사이즈로 그룹화하여 중복 제거
+  // 사이즈 정렬 순서
   const sizeOrder = { 'S': 1, 'M': 2, 'L': 3, 'XL': 4, 'XXL': 5 };
   const extractSize = (name) => { const m = name.match(/\b(S|M|L|XL|XXL)\b(?!.*\b(S|M|L|XL|XXL)\b)/); return m ? m[1] : ''; };
   const extractColor = (name) => name.replace(/\b(S|M|L|XL|XXL)\b/, '').trim().split(" ").pop();
 
-  // stockRows의 항목들을 색상별로 그룹화
-  const colorGroups = {};
+  // stockRows 단순 렌더링 (색상/사이즈 중복만 제거)
+  const seenColorSizes = new Set();
+  let rows = "";
+
   for (const p of S.products) {
     if (!fil(p, L)) continue;
-    const color = p.color;
-    if (!colorGroups[color]) {
-      colorGroups[color] = [];
-    }
-    const size = extractSize(p.name);
-    colorGroups[color].push({ p, size, st: L.stock(p.bc) });
-  }
 
-  // 색상을 한글 가나다순으로 정렬
-  const sortedColors = Object.keys(colorGroups).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+    const colorSizeKey = `${p.color}/${p.size}`;
+    if (seenColorSizes.has(colorSizeKey)) continue; // 중복 제거
+    seenColorSizes.add(colorSizeKey);
 
-  // stockRows 렌더링 (색상별 헤더 + 사이즈 순서)
-  let rows = "";
-  for (const color of sortedColors) {
-    rows += `<tr style="background:rgba(255,255,255,0.08)"><td colspan="6" style="font-weight:bold;padding:10px 8px;color:#4a9eff">▼ ${esc(color)}</td></tr>`;
-
-    // 같은 색상의 사이즈들을 정렬
-    const sizeItems = colorGroups[color].sort((a, b) => (sizeOrder[a.size] || 999) - (sizeOrder[b.size] || 999));
-
-    // 중복된 사이즈 제거 (같은 색상/사이즈 첫 번째만)
-    const seenSizes = new Set();
-    for (const { p, size, st } of sizeItems) {
-      const sizeKey = `${color}/${size}`;
-      if (seenSizes.has(sizeKey)) continue;
-      seenSizes.add(sizeKey);
-
-      const v = S.reqDraft[p.bc] || 0;
-      rows += `<tr class="${st <= 0 ? "out" : ""}">
-        <td>${esc(p.color)} / ${esc(size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
-        <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
-        <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
-    }
+    const st = L.stock(p.bc), v = S.reqDraft[p.bc] || 0;
+    rows += `<tr class="${st <= 0 ? "out" : ""}">
+      <td>${esc(p.color)} / ${esc(p.size)}</td><td class="mono">${esc(p.ez)}</td><td class="r num">${L.net(p.bc)}</td><td class="r num"><b>${st}</b></td>
+      <td class="c"><span class="qty"><button data-act="rq" data-bc="${p.bc}" data-d="-1">−</button><input class="input qty-input" id="rq-${p.bc}" data-rq="${p.bc}" value="${v || ""}" inputmode="numeric" placeholder="0"><button data-act="rq" data-bc="${p.bc}" data-d="1">+</button></span></td>
+      <td class="c">${v ? `<span class="chip info">요청 ${v}</span>` : ""}</td></tr>`;
   }
 
   // NEW_ITEMS + NO_STOCK을 색상/사이즈로 통합 (중복 제거)
